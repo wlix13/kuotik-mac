@@ -34,6 +34,7 @@ from PySide6.QtWidgets import (
 )
 
 from ..plot import Canvas
+from ..theory import apply_theory
 
 TABS = ("Построение кодов БЧХ", "Исправление ошибок")
 TABS_BUILD = ("Общие сведения", "Ввод данных", "Таблица", "Порождающая матрица")
@@ -1462,7 +1463,7 @@ class Lab7Page(QWidget):
         w = QWidget()
         lay = QVBoxLayout(w)
         view = QTextBrowser()
-        view.setHtml(html)
+        apply_theory(view, "project7_1", html)
         lay.addWidget(view)
         return w
 

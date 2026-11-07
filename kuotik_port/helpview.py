@@ -147,13 +147,8 @@ class HelpView(QWidget):
             body = path.read_text(encoding="cp1251", errors="replace")
         except OSError:
             body = "<p>не читается</p>"
-        base = QUrl.fromLocalFile(str(path.parent) + "/").toString()
-        tag = f'<base href="{base}">'
-        if "<head" in body.lower():
-            body = re.sub(r"(<head[^>]*>)", r"\1" + tag, body, count=1, flags=re.I)
-        else:
-            body = tag + body
         self._current = path
+        self.view.document().setBaseUrl(QUrl.fromLocalFile(str(path.parent) + "/"))
         self.view.setHtml(body)
 
     def _anchor(self, url: QUrl):

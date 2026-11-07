@@ -28,6 +28,7 @@ from PySide6.QtWidgets import (
 )
 
 from ..plot import Canvas
+from ..theory import apply_theory
 
 SQRT2 = math.sqrt(2.0)
 KINDS = ("Постоянный уровень", "Стационарный (RC)", "«Белый» шум")
@@ -595,7 +596,7 @@ class Lab4Page(QWidget):
         w = QWidget()
         lay = QVBoxLayout(w)
         view = QTextBrowser()
-        view.setHtml(THEORY)
+        apply_theory(view, "project4_1", THEORY)
         lay.addWidget(view)
         return w
 

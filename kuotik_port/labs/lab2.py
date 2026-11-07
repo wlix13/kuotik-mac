@@ -20,6 +20,7 @@ from PySide6.QtWidgets import (
 
 from ..mathlib import pulses as p
 from ..plot import Canvas
+from ..theory import apply_theory
 
 W_MAX = 3.0                                      # ось ω графиков программы, рад/с
 
@@ -87,7 +88,7 @@ class Lab2Page(QWidget):
         w = QWidget()
         lay = QVBoxLayout(w)
         view = QTextBrowser()
-        view.setHtml(THEORY)
+        apply_theory(view, "project2_1", THEORY)
         lay.addWidget(view)
         return w
 

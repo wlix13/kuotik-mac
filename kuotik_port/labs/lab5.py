@@ -35,6 +35,7 @@ from PySide6.QtWidgets import (
 )
 
 from ..plot import Canvas
+from ..theory import apply_theory
 
 MAX_N = 64
 SENS_N = 12                          # полный перебор расположений единиц до этой длины
@@ -648,7 +649,7 @@ class Lab5Page(QWidget):
         w = QWidget()
         lay = QVBoxLayout(w)
         view = QTextBrowser()
-        view.setHtml(THEORY)
+        apply_theory(view, "project5_1", THEORY)
         lay.addWidget(view)
         return w
 

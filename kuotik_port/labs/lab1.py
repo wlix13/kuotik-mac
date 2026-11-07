@@ -20,6 +20,7 @@ from PySide6.QtWidgets import (
 
 from ..mathlib import spectra as sp
 from ..plot import Canvas
+from ..theory import apply_theory
 
 THEORY = """<h3>Ряд Фурье в форме программы</h3>
 <p>x(t) = A<sub>0</sub>/2 + Σ |A<sub>k</sub>|·cos(kω<sub>0</sub>t + Θ<sub>k</sub>), ω<sub>0</sub> = 2π/T, k = 1…10.</p>
@@ -66,7 +67,7 @@ class Lab1Page(QWidget):
         w = QWidget()
         lay = QVBoxLayout(w)
         view = QTextBrowser()
-        view.setHtml(THEORY)
+        apply_theory(view, "project1_1", THEORY)
         lay.addWidget(view)
         return w
 

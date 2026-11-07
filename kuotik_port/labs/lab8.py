@@ -33,6 +33,7 @@ from PySide6.QtWidgets import (
 )
 
 from ..plot import Canvas
+from ..theory import apply_theory
 
 TABS = ("Общие сведения", "Ввод данных", "Описание модели",
         "Модель кодера", "Модель декодера")
@@ -939,7 +940,7 @@ class Lab8Page(QWidget):
         w = QWidget()
         lay = QVBoxLayout(w)
         view = QTextBrowser()
-        view.setHtml(html)
+        apply_theory(view, "project8_1", html)
         lay.addWidget(view)
         return w
 
