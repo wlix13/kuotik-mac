@@ -42,6 +42,27 @@ jobs:
       - name: Build
         run: uv run --group dev pyinstaller packaging/macos.spec --noconfirm --distpath dist --workpath build
 
+      - name: Smoke test (macOS)
+        if: runner.os == 'macOS'
+        env:
+          KUOTIK_SELFTEST: "1"
+          QT_QPA_PLATFORM: offscreen
+        run: '"dist/КУ ОТИК.app/Contents/MacOS/kuotik"'
+
+      - name: Smoke test (Linux)
+        if: runner.os == 'Linux'
+        env:
+          KUOTIK_SELFTEST: "1"
+          QT_QPA_PLATFORM: offscreen
+        run: dist/kuotik/kuotik
+
+      - name: Smoke test (Windows)
+        if: runner.os == 'Windows'
+        env:
+          KUOTIK_SELFTEST: "1"
+          QT_QPA_PLATFORM: offscreen
+        run: .\dist\kuotik\kuotik.exe
+
       - name: Package (macOS)
         if: runner.os == 'macOS'
         run: ditto -c -k --keepParent "dist/КУ ОТИК.app" kuotik-macos.zip

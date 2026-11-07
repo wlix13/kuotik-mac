@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import sys
 
 from PySide6.QtCore import Qt
@@ -148,6 +149,10 @@ def main() -> int:
     app_style(app)
     win = Main()
     win.show()
+    if os.environ.get("KUOTIK_SELFTEST"):
+        app.processEvents()
+        print(f"selftest ok: pages={win.stack.count()} tabs={win.help.books.count()} books")
+        return 0
     return app.exec()
 
 
