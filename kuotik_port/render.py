@@ -1,5 +1,3 @@
-"""Form model → Qt widgets. Delphi forms are absolutely positioned, so geometry is copied verbatim."""
-
 from __future__ import annotations
 
 from PySide6.QtCore import Qt
@@ -22,7 +20,6 @@ from PySide6.QtWidgets import (
 
 from .forms import MASK_HINTS, Node
 
-# Обработчик из DFM — ключ, по которому слой лаборатории привязывает логику.
 HANDLED = {}
 
 
@@ -37,7 +34,6 @@ def _place(w: QWidget, node: Node) -> None:
 
 
 def build(node: Node, parent: QWidget | None = None, assets: dict | None = None) -> QWidget:
-    """Build one control. Children are placed inside their parent, so nesting stays intact."""
     cls = node.cls
     w: QWidget
     if cls == "TPageControl":
@@ -126,7 +122,6 @@ def _place_tab(w: QTabWidget, node: Node, parent: QWidget | None) -> None:
 
 
 def _pixmap(node: Node, assets: dict | None) -> QPixmap | None:
-    """Picture may be inline (binary) or loaded by name at runtime; only named files resolve here."""
     if not assets:
         return None
     name = str(node.get("Picture") or "")

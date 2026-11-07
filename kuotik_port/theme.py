@@ -1,5 +1,3 @@
-"""Единый вид приложения: шрифты, рамки, отступы — ближе к исходным формам VCL."""
-
 from __future__ import annotations
 
 PAGE_CSS = """<style>
@@ -55,11 +53,9 @@ QLabel#status { color: #14624a; }
 
 
 def app_style(app) -> None:
-    """Fusion одинаково выглядит на macOS и Linux, дальше правит QSS."""
     app.setStyle("Fusion")
     app.setStyleSheet(APP_QSS)
 
 
 def style_page(html: str) -> str:
-    """Вставить общий CSS страниц справки в HTML перед разметкой."""
     return PAGE_CSS + html

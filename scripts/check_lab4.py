@@ -1,5 +1,3 @@
-"""Headless-проверка ЛР4 (Form4): вкладки, пороги трёх правил, вероятности, АКФ/СПМ, фильтр."""
-
 from __future__ import annotations
 
 import math
@@ -12,10 +10,10 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-import numpy as np  # noqa: E402
-from PySide6.QtWidgets import QApplication  # noqa: E402
+import numpy as np
+from PySide6.QtWidgets import QApplication
 
-from kuotik_port.labs.lab4 import (  # noqa: E402
+from kuotik_port.labs.lab4 import (
     KINDS,
     Lab4Page,
     acf_biased,
@@ -54,7 +52,7 @@ def check(name: str, fn):
     except AssertionError as exc:
         failures.append(f"{name}: {exc}")
         print(f"FAIL {name}: {exc}")
-    except Exception as exc:                       # noqa: BLE001
+    except Exception as exc:
         failures.append(f"{name}: {type(exc).__name__}: {exc}")
         print(f"FAIL {name}: {type(exc).__name__}: {exc}")
     else:
@@ -78,8 +76,6 @@ def bisect_root(fn, lo: float, hi: float) -> float:
     return 0.5 * (lo + hi)
 
 
-# --- структура ---------------------------------------------------------------
-
 def c_tabs():
     titles = ["Задача1", "Задача2", "Задача3", "Исследование"]
     assert page.tabs.count() == 4, page.tabs.count()
@@ -95,17 +91,13 @@ def c_tabs():
 check("структура: 4 внешние вкладки, 4/2/2/2 внутренних", c_tabs)
 
 
-# --- нормировка плотностей и отношения правдоподобия -------------------------
-
 def c_normalization():
     a, m, s = 1.7, -0.4, 0.9
     x = np.linspace(m - 12 * s, m + a + 12 * s, 200001)
     approx(float(np.trapezoid(pdf(x, m, s), x)), 1.0, 1e-6, "∫f(x|a1)")
     approx(float(np.trapezoid(pdf(x, m + a, s), x)), 1.0, 1e-6, "∫f(x|a2)")
-    # ∫L(x)·f(x|a1)dx = ∫f(x|a2)dx = 1 — L есть отношение плотностей
     approx(float(np.trapezoid(likelihood_ratio(x, a, m, s) * pdf(x, m, s), x)), 1.0, 1e-6,
            "∫L·f1")
-    # L монотонна по x и равна 1 в m + a/2
     vals = likelihood_ratio(np.array([m, m + a / 2, m + a]), a, m, s)
     assert vals[0] < vals[1] < vals[2], vals
     approx(float(vals[1]), 1.0, 1e-12, "L(m+a/2)")
@@ -113,8 +105,6 @@ def c_normalization():
 
 check("нормировка плотностей и L(x)=f2/f1", c_normalization)
 
-
-# --- порог: максимум правдоподобия ------------------------------------------
 
 def c_threshold_maxlik():
     a, m, s = 2.0, 0.5, 1.0
@@ -136,8 +126,6 @@ def c_threshold_maxlik():
 check("порог максимума правдоподобия: Xп = m + a/2", c_threshold_maxlik)
 
 
-# --- порог: идеальный наблюдатель -------------------------------------------
-
 def c_threshold_ideal():
     a, m, s, p1, p2 = 2.0, 0.0, 1.0, 0.8, 0.2
     xp = threshold(a, m, s, p1 / p2)
@@ -158,8 +146,6 @@ def c_threshold_ideal():
 
 check("порог идеального наблюдателя: λ = p1/p2", c_threshold_ideal)
 
-
-# --- порог: минимальный риск -------------------------------------------------
 
 def c_threshold_risk():
     a, m, s, p1, p2, r12, r21 = 2.0, 0.0, 1.0, 0.5, 0.5, 0.1, 1.0
@@ -186,8 +172,6 @@ def c_threshold_risk():
 check("порог минимального риска: λ = p1·r12/(p2·r21)", c_threshold_risk)
 
 
-# --- вероятность ошибки и риск ----------------------------------------------
-
 def c_probabilities():
     a, m, s, p1, p2, r12, r21 = 1.5, -0.2, 0.8, 0.7, 0.3, 2.0, 5.0
     xp = 0.9
@@ -198,7 +182,6 @@ def c_probabilities():
     r_num = (p1 * r12 * float(np.trapezoid(np.where(x > xp, pdf(x, m, s), 0.0), x))
              + p2 * r21 * float(np.trapezoid(np.where(x < xp, pdf(x, m + a, s), 0.0), x)))
     approx(mean_risk(a, m, s, p1, p2, r12, r21, xp), r_num, 1e-5, "риск формула/интеграл")
-    # Q-функция
     approx(qfunc(0.0), 0.5, 1e-12, "Q(0)")
     approx(qfunc(1.0), 0.5 * math.erfc(1 / math.sqrt(2)), 1e-12, "Q(1)")
     approx(qfunc(-1.0), 1 - qfunc(1.0), 1e-12, "Q(-1)")
@@ -222,8 +205,6 @@ def c_optimum():
 check("Xп* минимизирует Pош", c_optimum)
 
 
-# --- апостериорные вероятности ----------------------------------------------
-
 def c_posterior():
     a, m, s = 1.0, 0.0, 1.0
     p1, p2 = 0.9, 0.1
@@ -231,7 +212,6 @@ def c_posterior():
     lo = posterior(a, m, s, p1, p2, m - 30 * s)
     approx(hi[0], p1, 1e-6, "P(a1|X1) при Xп→+∞")
     approx(lo[0], 1.0, 1e-6, "P(a1|X1) при Xп→−∞")
-    # монотонность по порогу: шире область X1 — апостериорная падает к p(a1)
     grid = np.linspace(m - 4 * s, m + a + 4 * s, 200)
     pa1 = [posterior(a, m, s, p1, p2, xp)[0] for xp in grid]
     assert np.all(np.diff(pa1) < 0), "P(a1|X1) не убывает с ростом порога"
@@ -239,7 +219,6 @@ def c_posterior():
     for xp in (-2.0, -0.5, 0.0, 0.5, 2.0):
         pa1v, pa2v = posterior(a, m, s, p1, p2, xp)
         assert 0.0 <= pa1v <= 1.0 and 0.0 <= pa2v <= 1.0, (pa1v, pa2v)
-    # оптимальный порог: апостериорные не ниже априорных внутри своих областей
     xp = threshold(a, m, s, p1 / p2)
     pa1v, pa2v = posterior(a, m, s, p1, p2, xp)
     assert pa1v >= p1 - 1e-12, f"P(a1|X1)={pa1v} < p1={p1}"
@@ -248,8 +227,6 @@ def c_posterior():
 
 check("апостериорные вероятности: пределы и допустимость", c_posterior)
 
-
-# --- кнопки -----------------------------------------------------------------
 
 def c_buttons():
     page.t1.a.setValue(2.0)
@@ -275,8 +252,6 @@ def c_buttons():
 check("кнопки «Проверить», «Обнулить», «Обновить»", c_buttons)
 
 
-# --- спектральные характеристики --------------------------------------------
-
 def c_wiener_khinchin():
     sigma2, alpha = 4.0, 200.0
     w = np.array([10.0, 50.0, 100.0, 200.0, 400.0, 800.0])
@@ -284,7 +259,6 @@ def c_wiener_khinchin():
     th = psd_rc(w, sigma2, alpha)
     err = float(np.max(np.abs(num - th) / th))
     assert err < 0.02, f"Φ(ω) из R(τ): относительная ошибка {err}"
-    # ∫Φ(ω)dω/2π = σ² = R(0)
     ww = np.linspace(-2000 * alpha, 2000 * alpha, 200001)
     power = power_from_psd(ww, psd_rc(ww, sigma2, alpha))
     approx(power, sigma2, 0.01 * sigma2, "мощность через СПМ")
@@ -312,7 +286,6 @@ def c_rc_process():
     th = acf_rc(tau, 1.0, 200.0)
     dev = float(np.max(np.abs(r[:6] - th)))
     assert dev < 0.12, f"АКФ АР-1 расходится с σ²e^(−ατ): {dev}"
-    # средняя мощность ≈ дисперсия ≈ R(0)
     approx(float((x ** 2).mean()), float(r[0]), 0.05, "мощность процесса")
 
 
@@ -333,7 +306,6 @@ def c_white_noise():
     mean = float(s[1:-1].mean())
     expected = 2 * 4.0 / fs
     assert abs(mean - expected) / expected < 0.2, f"средний уровень СПМ {mean} vs {expected}"
-    # ровность: разброс одного бина ~ уровню (хи-квадрат с 2 степенями свободы)
     assert float(s[1:-1].std() / mean) < 2.0, "СПМ не ровная"
 
 
@@ -357,8 +329,6 @@ def c_const_level():
 check("постоянный уровень: R(0)=A², мощность A²", c_const_level)
 
 
-# --- согласованный фильтр ----------------------------------------------------
-
 def c_matched_filter():
     a, t_dur, n0 = 1.0, 1e-3, 0.01
     fs = max(2000.0, 200.0 / t_dur)
@@ -369,17 +339,13 @@ def c_matched_filter():
     k = int(np.argmax(np.abs(y)))
     approx(float(t[k]), t_dur, dt, "максимум выхода при t0=T")
     approx(float(y[k]), a * a * t_dur, 1e-9, "y(t0)=A²T=E")
-    # SNR = 2E/N0 точно и как (∫s·h)²/((N0/2)∫h²)
     e = float(np.trapezoid(s * s, t))
     snr = e ** 2 / ((n0 / 2) * float(np.trapezoid(s * s, t)))
-    # сетка даёт O(dt) поправку к интегралу, поэтому 1 %
     approx(snr, matched_snr(a, t_dur, n0), 1e-2 * matched_snr(a, t_dur, n0), "SNR = 2E/N0")
-    # фильтр вдвое короче — хуже
     short = np.where((t >= 0) & (t < t_dur / 2), a, 0.0)
     snr_alt = (float(np.trapezoid(s * short, t)) ** 2
                / ((n0 / 2) * float(np.trapezoid(short * short, t))))
     assert snr_alt < snr, f"короткий фильтр дал {snr_alt} >= {snr}"
-    # страница рисует этот же пик
     page.mf_a.setValue(a)
     page.mf_t.setValue(t_dur * 1e3)
     page.mf_n0.setValue(n0)
@@ -395,8 +361,6 @@ def c_matched_filter():
 
 check("согласованный фильтр: пик в t0, SNR=2E/N0, короче — хуже", c_matched_filter)
 
-
-# --- очистка -----------------------------------------------------------------
 
 def c_clear():
     page.t2.xp.setValue(1.234)
@@ -414,8 +378,6 @@ def c_clear():
 check("«Очистить»: графики и поля пусты", c_clear)
 
 
-# --- вкладки и скриншоты -----------------------------------------------------
-
 def shot(name: str):
     page.redraw_all()
     app.processEvents()
@@ -425,7 +387,6 @@ def shot(name: str):
     print(f"     shot {path} {path.stat().st_size // 1024} KiB")
 
 
-# рабочее состояние для скриншотов
 for panel in (page.t1, page.t2, page.t3, page.t4):
     panel.compute()
 page.draw_spectral()

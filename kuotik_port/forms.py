@@ -1,5 +1,3 @@
-"""Delphi 7 DFM resources → form model. Reads RCDATA resources out of the exe."""
-
 from __future__ import annotations
 
 import json
@@ -9,7 +7,6 @@ from pathlib import Path
 
 import pefile
 
-# Маски полей ввода задают формат числа: '#0.000' — знак и 3 знака после запятой.
 MASK_HINTS = {"#0.000": "±0.000", "0.000": "0.000", "   .  ": "число"}
 
 

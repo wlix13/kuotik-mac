@@ -1,9 +1,3 @@
-"""ЛР4: случайные сигналы и оптимальный приём — форма Form4.
-
-Разделы: спектральные характеристики случайных процессов (реализации, АКФ, СПМ,
-согласованный фильтр) и синтез обнаружителя постоянного сигнала для трёх правил.
-"""
-
 from __future__ import annotations
 
 import math
@@ -83,21 +77,16 @@ CRITERIA = {1: "максимум правдоподобия", 2: "идеальн
             4: "исследование"}
 
 
-# --- математика ---------------------------------------------------------------
-
 def phi(u):
-    """Плотность стандартного нормального закона (скаляр или массив)."""
     u = np.asarray(u, dtype=float)
     return np.exp(-0.5 * u * u) / math.sqrt(2 * math.pi)
 
 
 def cdf(u):
-    """Φ(u) — функция распределения N(0,1)."""
     return 0.5 * math.erfc(-u / SQRT2)
 
 
 def qfunc(u):
-    """Q(u) = 1 − Φ(u)."""
     return 0.5 * math.erfc(u / SQRT2)
 
 
@@ -106,12 +95,10 @@ def pdf(x, m, sigma):
 
 
 def likelihood_ratio(x, a, m, sigma):
-    """L(x) = f(x|a2)/f(x|a1); монотонна, L = 1 при x = m + a/2."""
     return np.exp(a * (np.asarray(x, dtype=float) - m) / sigma ** 2 - a * a / (2 * sigma ** 2))
 
 
 def threshold(a, m, sigma, lam):
-    """Xп из L(Xп) = λ; при λ → ∞ порог уходит в бесконечность."""
     if not math.isfinite(lam) or lam <= 0:
         return float("inf")
     return m + a / 2 + sigma ** 2 * math.log(lam) / a
@@ -127,7 +114,6 @@ def lam_risk(p1, p2, r12, r21):
 
 
 def p_error(a, m, sigma, p1, p2, xp):
-    """Средняя вероятность ошибки распознавания."""
     xp = _finite_xp(xp)
     return p1 * qfunc((xp - m) / sigma) + p2 * cdf((xp - m - a) / sigma)
 
@@ -138,7 +124,6 @@ def mean_risk(a, m, sigma, p1, p2, r12, r21, xp):
 
 
 def posterior(a, m, sigma, p1, p2, xp):
-    """(P(a1|X1), P(a2|X2)) — апостериорные вероятности правильных решений."""
     xp = _finite_xp(xp)
     u1, u2 = (xp - m) / sigma, (xp - m - a) / sigma
     f1, f2 = cdf(u1), cdf(u2)
@@ -155,20 +140,16 @@ def _finite_xp(xp):
     return xp
 
 
-# --- спектральные характеристики ---------------------------------------------
-
 def acf_rc(tau, sigma2, alpha):
     return sigma2 * np.exp(-alpha * np.abs(np.asarray(tau, dtype=float)))
 
 
 def psd_rc(w, sigma2, alpha):
-    """Двусторонняя СПМ RC-процесса, В²·с/рад."""
     w = np.asarray(w, dtype=float)
     return 2 * alpha * sigma2 / (alpha ** 2 + w ** 2)
 
 
 def psd_from_acf(sigma2, alpha, w, tmax_factor: float = 20.0, n: int = 40001):
-    """Численное Φ(ω) = ∫R(τ)e^{−jωτ}dτ по symmetric сетке — проверка Винера–Хинчина."""
     w = np.atleast_1d(np.asarray(w, dtype=float))
     tmax = tmax_factor / alpha
     tau = np.linspace(-tmax, tmax, n)
@@ -177,12 +158,10 @@ def psd_from_acf(sigma2, alpha, w, tmax_factor: float = 20.0, n: int = 40001):
 
 
 def power_from_psd(w, s):
-    """(1/2π)∫Φ(ω)dω = R(0)."""
     return float(np.trapezoid(s, w) / (2 * math.pi))
 
 
 def ar1(n: int, sigma: float, alpha: float, fs: float, rng=None):
-    """Стационарный процесс с R(τ)=σ²e^{−α|τ|}: y[n]=ρy[n−1]+σ√(1−ρ²)w[n]."""
     rng = rng or np.random.default_rng(0)
     rho = math.exp(-alpha / fs)
     w = rng.standard_normal(n)
@@ -195,14 +174,12 @@ def ar1(n: int, sigma: float, alpha: float, fs: float, rng=None):
 
 
 def acf_biased(x):
-    """R[m] = (1/N)Σx[n]x[n+m]."""
     x = np.asarray(x, dtype=float)
     n = len(x)
     return np.correlate(x, x, "full")[n - 1:] / n
 
 
 def periodogram(x, fs):
-    """Односторонняя СПМ, В²/Гц: S[k]=|X[k]|²/(N·Fд), внутренние бины ×2."""
     x = np.asarray(x, dtype=float)
     n = len(x)
     spec = np.fft.rfft(x) / n
@@ -214,12 +191,10 @@ def periodogram(x, fs):
 
 
 def matched_snr(a, t_dur, n0):
-    """SNR на выходе согласованного фильтра в момент t0: 2E/N0, E = a²T."""
     return 2 * a * a * t_dur / n0
 
 
 def matched_output(t, x, s, dt, t0=None):
-    """y(t) = ∫x(τ)h(t−τ)dτ, h(τ)=s(t0−τ); согласованный фильтр — свёртка с s(t0−t)."""
     t = np.asarray(t, dtype=float)
     x = np.asarray(x, dtype=float)
     s = np.asarray(s, dtype=float)
@@ -227,8 +202,6 @@ def matched_output(t, x, s, dt, t0=None):
     h = np.interp(t0 - t, t, s, left=0.0, right=0.0)
     return np.convolve(x, h)[: len(t)] * dt
 
-
-# --- вспомогательные виджеты ---------------------------------------------------
 
 def _spin(lo, hi, val, step, suffix="", decimals=3) -> QDoubleSpinBox:
     sp = QDoubleSpinBox()
@@ -259,7 +232,6 @@ def _form(rows) -> QWidget:
 
 
 class TaskPanel:
-    """Задачи 1–3 и «Исследование»: вкладки «Ввод данных» и «Отображение функций»."""
 
     def __init__(self, page: "Lab4Page", mode: int):
         self.page = page
@@ -290,7 +262,6 @@ class TaskPanel:
         self._connect()
         self.compute()
 
-    # --- сборка ---------------------------------------------------------------
 
     def _data_tab(self) -> QWidget:
         w = QWidget()
@@ -411,7 +382,6 @@ class TaskPanel:
         if self.lam is not None:
             self.lam.editingFinished.connect(self.compute)
 
-    # --- расчёт ---------------------------------------------------------------
 
     def lam_value(self) -> float:
         if self.mode == 1:
@@ -477,7 +447,6 @@ class TaskPanel:
                 lab.setText(vals.get(key, "—"))
 
     def check(self):
-        """Сверка введённого Xп с расчётным; форма маски — 3 знака."""
         if not math.isfinite(self.xp_calc):
             self.ok = False
             self.verdict.setText("Порог не определён: λ или a вне области")
@@ -507,7 +476,6 @@ class TaskPanel:
         self.compute()
         self.page.set_status(f"Задача {self.mode}: поля обнулены")
 
-    # --- графики --------------------------------------------------------------
 
     def draw(self):
         cv = self.cv
@@ -600,7 +568,6 @@ class Lab4Page(QWidget):
         lay.addWidget(view)
         return w
 
-    # --- спектральные характеристики -----------------------------------------
 
     def _spectral_tab(self) -> QWidget:
         w = QWidget()
@@ -686,7 +653,6 @@ class Lab4Page(QWidget):
         return w
 
     def spectral_data(self):
-        """(kind, x, fs) — реализация процесса по текущим полям."""
         kind = self.spec_kind.currentText()
         n = int(self.spec_n.currentText())
         fs = float(self.spec_fd.value())
@@ -703,7 +669,6 @@ class Lab4Page(QWidget):
         return kind, x, fs
 
     def _spec_theory(self, kind: str):
-        """(R(τ), Φ(ω), подпись единиц) для текущего процесса."""
         sigma2 = float(self.spec_sigma.value()) ** 2
         alpha = float(self.spec_alpha.value())
         amp = float(self.spec_amp.value())
@@ -744,7 +709,6 @@ class Lab4Page(QWidget):
 
         cv = self.cv_psd
         if kind == KINDS[0]:
-            # у постоянного уровня спектр — дельта на нуле: рисуем линейчатый спектр
             amp2 = float(self.spec_amp.value()) ** 2
             cv.clear(f"СПМ: {kind} (линейчатый спектр)", "f, Гц", "P, В²")
             cv.ax.vlines(0.0, 0.0, amp2, color="#8e24aa", lw=2.5)
@@ -830,7 +794,6 @@ class Lab4Page(QWidget):
         self.spec_caption.setText("")
         self.set_status("Спектральные характеристики очищены")
 
-    # --- общее ----------------------------------------------------------------
 
     def set_status(self, text: str):
         self.status.setText(text)
@@ -840,7 +803,6 @@ class Lab4Page(QWidget):
                 self.t1.cv, self.t2.cv, self.t3.cv, self.t4.cv]
 
     def redraw_all(self):
-        """Синхронная перерисовка: draw_idle может не успеть к grab()."""
         for cv in self.canvases():
             cv.draw()
 

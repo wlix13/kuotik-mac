@@ -1,5 +1,3 @@
-"""Headless check: build main window, walk every page, exercise lab1 buttons, save screenshots."""
-
 from __future__ import annotations
 
 import os
@@ -10,9 +8,9 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from PySide6.QtWidgets import QApplication  # noqa: E402
+from PySide6.QtWidgets import QApplication
 
-from kuotik_port.app import Main  # noqa: E402
+from kuotik_port.app import Main
 
 out = Path(os.environ.get("SHOTS", "/tmp/shots"))
 out.mkdir(exist_ok=True)
@@ -28,7 +26,6 @@ for i in range(win.nav.count()):
     app.processEvents()
     print(f"  {i}: {win.nav.item(i).text()}")
 
-# ЛР1: перебрать вкладки и пресеты
 win.nav.setCurrentRow(0)
 app.processEvents()
 page = win.stack.widget(0)
@@ -37,8 +34,8 @@ for t in range(page.tabs.count()):
     app.processEvents()
     print(f"  lab1 tab {t}: {page.tabs.tabText(t)}")
 
-from kuotik_port.labs.lab1 import PRESETS  # noqa: E402
-from kuotik_port.mathlib.spectra import window_max  # noqa: E402
+from kuotik_port.labs.lab1 import PRESETS
+from kuotik_port.mathlib.spectra import window_max
 
 for name in PRESETS:
     page._load_preset(name=name)

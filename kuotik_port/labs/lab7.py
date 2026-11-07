@@ -1,12 +1,3 @@
-"""ЛР7: корректирующие коды БЧХ — форма Form8 (15 вкладок).
-
-Две ветви формы: «Построение кодов БЧХ» (теория, ввод N и T, таблица минимальных
-многочленов, порождающая матрица) и «Исправление ошибок» (сведения CS и PGZ,
-ввод A(x)/G(x)/T, вектор ошибок, методы CS и PGZ, результаты, поле GF(2^m),
-матрица H). Расчёт — GF(2^m) над GF(2), минимальные многочлены через
-циклотомические классы, декодирование PGZ по синдромам и CS циклическим сдвигом.
-"""
-
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -52,7 +43,6 @@ TABS_FIX = (
 N_CHOICES = (3, 5, 7, 9, 15, 21, 31, 63)
 T_MAX = 7
 PRIM = {2: 0b111, 3: 0b1011, 4: 0b10011, 5: 0b100101, 6: 0b1000011}
-# минимальные многочлены F_i(x) по справке (табл. 7.2): i*C0 → код
 MSG_NO_CODE = "БЧХ не существует, т.к. G(X) не укладывается в длину кода N"
 MSG_NOT_CODE = ("Комбинация A(X) нацело на G(X) не делится, т.е. он не принадлежит "
                 "циклическому коду")
@@ -177,10 +167,7 @@ S₁ = α, S₂ = α², S₃ = α⁸, S₄ = α⁴, S₅ = 1, S₆ = α; кор�
 0, 6, 12, после инверсии разрядов получается u(x).</p>"""
 
 
-# --- GF(2^m) и многочлены над GF(2) -------------------------------------------
-
 class GF:
-    """Поле GF(2^m): таблицы степеней и логарифмов по примитивному многочлену."""
 
     def __init__(self, m: int, prim: int | None = None):
         self.m = m
@@ -225,20 +212,17 @@ class GF:
         return self.exp[(self.log[a] * k) % self.n]
 
     def name(self, a: int) -> str:
-        """Элемент в виде степени примитивного элемента."""
         if a == 0:
             return "0"
         e = self.log[a]
         return "1" if e == 0 else f"α^{e}"
 
     def poly(self, a: int) -> str:
-        """Элемент как многочлен от z."""
         if a == 0:
             return "0"
         return fmt_poly(a, "z")
 
     def table(self) -> list[tuple[int, int, str, str]]:
-        """Строки: степень, элемент, многочлен, двоичный код."""
         return [
             (i, self.exp[i], self.poly(self.exp[i]), bin(self.exp[i])[2:].rjust(self.m, "0"))
             for i in range(self.n)
@@ -294,7 +278,6 @@ def bits(value: int, width: int | None = None) -> str:
 
 
 def fmt_poly(p: int, var: str = "x") -> str:
-    """Многочлен из битовой маски: 1011 → x^3 + x + 1."""
     if p == 0:
         return "0"
     terms = []
@@ -311,7 +294,6 @@ def fmt_poly(p: int, var: str = "x") -> str:
 
 
 def parse_bits(text: str) -> int | None:
-    """Строка 0/1 → число; None, если есть другие символы."""
     s = (text or "").strip().replace(" ", "")
     if not s or any(c not in "01" for c in s):
         return None
@@ -319,13 +301,12 @@ def parse_bits(text: str) -> int | None:
 
 
 def minimal_poly(gf: GF, power: int, N: int) -> tuple[int, list[int]]:
-    """Минимальный многочлен α^power над GF(2) и его циклотомический класс."""
     conj: list[int] = []
     cur = power % gf.n
     while cur not in conj:
         conj.append(cur)
         cur = (cur * 2) % gf.n
-    coeffs = [1]                      # по возрастанию степеней, коэффициенты GF
+    coeffs = [1]
     for c in conj:
         val = gf.exp[c]
         new = [0] * (len(coeffs) + 1)
@@ -342,7 +323,6 @@ def minimal_poly(gf: GF, power: int, N: int) -> tuple[int, list[int]]:
 
 @dataclass
 class BCHModel:
-    """Параметры кода БЧХ (N, T) и всё, что из них следует."""
 
     N: int
     T: int
@@ -379,7 +359,6 @@ class BCHModel:
         return self.G
 
     def matrix(self) -> list[int]:
-        """Систематическая порождающая матрица: k строк по N разрядов."""
         rows = []
         for i in range(self.k):
             info = 1 << (self.N - 1 - i)
@@ -387,17 +366,14 @@ class BCHModel:
         return rows
 
     def encode(self, message: int) -> int:
-        """Систематическое кодирование: u(x)·x^r + остаток от деления на G(x)."""
         word = message << self.r
         return word | poly_mod(word, self.G)
 
     def encode_poly(self, message: int) -> int:
-        """Несистематическое кодирование A(x) = u(x)·G(x)."""
         return poly_mul(message, self.G)
 
 
 def build_bch(N: int, T: int) -> BCHModel:
-    """Код БЧХ по N и T: m, C0, минимальные многочлены, G(x), r, k."""
     model = BCHModel(N=N, T=T, D=2 * T + 1)
     m = next((mm for mm in range(2, 13) if ((1 << mm) - 1) % N == 0), None)
     if m is None:
@@ -429,7 +405,6 @@ def build_bch(N: int, T: int) -> BCHModel:
 
 
 def syndromes(word: int, model: BCHModel) -> list[int]:
-    """S_i = A(α^(i·C0)), i = 1…2T."""
     gf, N, C0 = model.gf, model.N, model.C0
     alpha = gf.exp[1]
     out = []
@@ -444,7 +419,6 @@ def syndromes(word: int, model: BCHModel) -> list[int]:
 
 
 def h_matrix(model: BCHModel) -> list[list[int]]:
-    """Проверочная матрица 2T × N в степенях α."""
     gf, N, C0 = model.gf, model.N, model.C0
     alpha = gf.exp[1]
     rows = []
@@ -455,7 +429,6 @@ def h_matrix(model: BCHModel) -> list[list[int]]:
 
 
 def gf_det(mat: list[list[int]], gf: GF) -> int:
-    """Определитель над GF(2^m) разложением по первой строке."""
     n = len(mat)
     if n == 0:
         return 1
@@ -471,7 +444,6 @@ def gf_det(mat: list[list[int]], gf: GF) -> int:
 
 
 def gf_solve_cramer(A: list[list[int]], b: list[int], gf: GF) -> list[int] | None:
-    """Решение системы A·s = b по правилу Крамера; None при нулевом определителе."""
     D = gf_det(A, gf)
     if D == 0:
         return None
@@ -487,7 +459,6 @@ def gf_solve_cramer(A: list[list[int]], b: list[int], gf: GF) -> list[int] | Non
 
 @dataclass
 class PGZResult:
-    """Итог PGZ: синдромы, локатор, позиции ошибок, исправленная комбинация."""
 
     ok: bool
     detected: bool = False
@@ -503,9 +474,8 @@ class PGZResult:
 
 
 def pgz_decode(word: int, model: BCHModel) -> PGZResult:
-    """PGZ: синдромы → матрица Ньютона → Крамер → корни локатора → инверсия разрядов."""
     gf, N, T = model.gf, model.N, model.T
-    S = [0] + syndromes(word, model)          # с 1
+    S = [0] + syndromes(word, model)
     res = PGZResult(ok=False, syndromes=S[1:])
     if all(v == 0 for v in S[1:]):
         res.ok = True
@@ -573,7 +543,6 @@ def pgz_decode(word: int, model: BCHModel) -> PGZResult:
 
 @dataclass
 class CSCycle:
-    """Один цикл CS: сдвиг, делимое, остаток, его вес."""
 
     shift: int
     dividend: int
@@ -583,7 +552,6 @@ class CSCycle:
 
 @dataclass
 class CSResult:
-    """Итог метода циклического сдвига."""
 
     ok: bool
     detected: bool = False
@@ -598,7 +566,6 @@ class CSResult:
 
 
 def cs_decode(word: int, G: int, N: int, T: int) -> CSResult:
-    """CS: деление на G(x), сдвиги влево, пока вес остатка > T, обратный сдвиг."""
     res = CSResult(ok=False)
     if G == 0 or poly_deg(G) > N:
         res.steps.append("Порождающий многочлен не задан")
@@ -629,7 +596,6 @@ def cs_decode(word: int, G: int, N: int, T: int) -> CSResult:
 
 
 def min_distance(model: BCHModel, limit: int = 1 << 16) -> int:
-    """Минимальное расстояние перебором кодовых слов (для малых k)."""
     if model.k > 16 or (1 << model.k) > limit:
         raise ValueError("перебор слишком велик")
     best = model.N + 1
@@ -647,10 +613,7 @@ def min_distance(model: BCHModel, limit: int = 1 << 16) -> int:
     return best
 
 
-# --- виджеты ------------------------------------------------------------------
-
 def _mono_font() -> QFont:
-    """Моноширинный шрифт для двоичных комбинаций."""
     font = QFont("Menlo")
     font.setStyleHint(QFont.Monospace)
     font.setPointSize(11)
@@ -664,7 +627,6 @@ def _mono(text: str = "", size: int = 12) -> QLabel:
 
 
 class BitsEdit(QLineEdit):
-    """Поле двоичной комбинации фиксированной длины N."""
 
     def __init__(self, length: int, value: int = 0):
         super().__init__()
@@ -693,7 +655,6 @@ class BitsEdit(QLineEdit):
 
 
 class PolyEdit(QLineEdit):
-    """Поле многочлена в виде двоичной маски."""
 
     def __init__(self, value: int = 0):
         super().__init__()
@@ -716,7 +677,6 @@ class Title(QLabel):
 
 
 class ResultRow(QWidget):
-    """Строка «подпись → значение»."""
 
     def __init__(self, caption: str, width: int = 0):
         super().__init__()
@@ -737,10 +697,7 @@ class ResultRow(QWidget):
         self.value.setText("—")
 
 
-# --- вкладка «Ввод данных» (построение) ---------------------------------------
-
 class BuildInputPanel(QWidget):
-    """N из набора, T = 1…7, расчёт m, C₀, Φ, r, G(x) и Memo2 протокола."""
 
     def __init__(self, page: "Lab7Page"):
         super().__init__()
@@ -869,10 +826,7 @@ class BuildInputPanel(QWidget):
         self.page.set_status("Результаты построения сброшены", ok=True)
 
 
-# --- вкладка «Таблица» --------------------------------------------------------
-
 class TablePanel(QWidget):
-    """Столбец m таблицы минимальных многочленов и восемь полей F_i*Co."""
 
     def __init__(self, page: "Lab7Page"):
         super().__init__()
@@ -914,7 +868,6 @@ class TablePanel(QWidget):
         self.btn_calc.clicked.connect(self.compute)
 
     def fill(self, model: BCHModel) -> None:
-        """Заполнить столбец m: F_i*Co для текущих N и T."""
         self.tbl.setRowCount(max(len(model.minpolys), 1))
         for row, (i, p, conj) in enumerate(model.minpolys):
             values = [f"{i}*{model.C0}", fmt_poly(p), bits(p)]
@@ -927,7 +880,6 @@ class TablePanel(QWidget):
         self.r_g.set(bits(model.G) if model.exists else "—")
 
     def compute(self) -> int | None:
-        """LCM введённых многочленов → G(x); проверка делимости x^N + 1."""
         model = self.page.model
         polys = []
         for row, fld in enumerate(self.fields):
@@ -937,7 +889,7 @@ class TablePanel(QWidget):
             if v is None:
                 self.page.set_status(MSG_BAD_BITS, ok=False)
                 return None
-            polys.append(v or 1)                 # нулевой код заменяем единицей
+            polys.append(v or 1)
         if not polys:
             self.page.set_status(MSG_BAD_G, ok=False)
             return None
@@ -959,10 +911,7 @@ class TablePanel(QWidget):
         return G
 
 
-# --- вкладка «Порождающая матрица» --------------------------------------------
-
 class MatrixPanel(QWidget):
-    """Порождающая матрица и сложение выбранных строк в A(x)."""
 
     def __init__(self, page: "Lab7Page"):
         super().__init__()
@@ -1039,10 +988,7 @@ class MatrixPanel(QWidget):
         return word
 
 
-# --- вторая часть: ввод данных ------------------------------------------------
-
 class FixInputPanel(QWidget):
-    """A(x), G(x) и T для исправления ошибок; «Далее >>» и «Сброс»."""
 
     def __init__(self, page: "Lab7Page"):
         super().__init__()
@@ -1122,7 +1068,6 @@ class FixInputPanel(QWidget):
 
 
 class ErrorVectorPanel(QWidget):
-    """E(x) и принятая комбинация A″(x) = A(x) + E(x)."""
 
     def __init__(self, page: "Lab7Page"):
         super().__init__()
@@ -1169,10 +1114,7 @@ class ErrorVectorPanel(QWidget):
         return word
 
 
-# --- методы CS и PGZ ----------------------------------------------------------
-
 class CSPanel(QWidget):
-    """«Динамика» — протокол циклов CS, «Результаты» — итог."""
 
     def __init__(self, page: "Lab7Page"):
         super().__init__()
@@ -1231,7 +1173,6 @@ class CSPanel(QWidget):
 
 
 class PGZPanel(QWidget):
-    """«Запуск PGZ», таблица синдромов, протокол и переходы к полю и матрице H."""
 
     def __init__(self, page: "Lab7Page"):
         super().__init__()
@@ -1278,7 +1219,6 @@ class PGZPanel(QWidget):
 
 
 class ResultsPanel(QWidget):
-    """Итог CS: сдвиг влево, сумма с остатком, обратный сдвиг, переданное сообщение."""
 
     def __init__(self, page: "Lab7Page"):
         super().__init__()
@@ -1322,7 +1262,6 @@ class ResultsPanel(QWidget):
 
 
 class FieldPanel(QWidget):
-    """Поле GF(2^m) по примитивному многочлену: степени, многочлены, коды."""
 
     def __init__(self, page: "Lab7Page"):
         super().__init__()
@@ -1359,7 +1298,6 @@ class FieldPanel(QWidget):
 
 
 class HMatrixPanel(QWidget):
-    """Матрица H: строки в степенях α и карта ненулевых элементов."""
 
     def __init__(self, page: "Lab7Page"):
         super().__init__()
@@ -1395,10 +1333,7 @@ class HMatrixPanel(QWidget):
         self.canvas.draw_idle()
 
 
-# --- страница -----------------------------------------------------------------
-
 class Lab7Page(QWidget):
-    """Form8: две ветви формы, 4 + 9 вкладок, общее состояние модели."""
 
     def __init__(self):
         super().__init__()
@@ -1457,7 +1392,6 @@ class Lab7Page(QWidget):
         self.apply_model(self.model)
         self.set_status("Готово: выберите N и T и нажмите «Вычислить»", ok=True)
 
-    # --- сборка/состояние ---------------------------------------------------
 
     def _theory(self, html: str) -> QWidget:
         w = QWidget()
@@ -1485,7 +1419,6 @@ class Lab7Page(QWidget):
         self.pgz_result = None
 
     def apply_model(self, model: BCHModel) -> None:
-        """Перестроить все зависимые вкладки под модель."""
         self.model = model
         N = model.N
         for w in (self.fix_in.f_a, self.errvec.f_e):
@@ -1511,7 +1444,6 @@ class Lab7Page(QWidget):
         self.matrix.fill(self.model)
 
     def set_code(self, word: int) -> None:
-        """Готовая кодовая комбинация → поля второй части."""
         self.code = word
         self.fix_in.f_a.set_bits(word)
         r = self.model.r
@@ -1555,7 +1487,6 @@ class Lab7Page(QWidget):
         self.results.fill(res, self.model)
 
     def verdict(self) -> str:
-        """Вердикт по последнему исправлению."""
         if self.received is None:
             return ""
         corrected = None

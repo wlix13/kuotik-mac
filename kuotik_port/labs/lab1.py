@@ -1,5 +1,3 @@
-"""ЛР1: ряд Фурье периодического сигнала — вкладки как в КУ ОТИК, расчёт из mathlib/spectra.py."""
-
 from __future__ import annotations
 
 from PySide6.QtCore import Qt
@@ -61,7 +59,6 @@ class Lab1Page(QWidget):
         self.tabs.addTab(self._result_tab(), "Сигнал с заданным спектром")
         self._load_preset(default=True)
 
-    # --- вкладки -------------------------------------------------------------
 
     def _theory_tab(self) -> QWidget:
         w = QWidget()
@@ -176,7 +173,6 @@ class Lab1Page(QWidget):
         lay.addWidget(self.cv_res)
         return w
 
-    # --- поведение -----------------------------------------------------------
 
     def _load_preset(self, name: str | None = None, default: bool = False):
         key = name or "Треугольник (h = 2)"

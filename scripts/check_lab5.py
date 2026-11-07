@@ -1,5 +1,3 @@
-"""Headless-проверка ЛР5 (Form6): КДС, АПК, ИПП, УК — длины, декодирование, числа справки."""
-
 from __future__ import annotations
 
 import itertools
@@ -13,10 +11,10 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-import numpy as np  # noqa: E402
-from PySide6.QtWidgets import QApplication  # noqa: E402
+import numpy as np
+from PySide6.QtWidgets import QApplication
 
-from kuotik_port.labs.lab5 import (  # noqa: E402
+from kuotik_port.labs.lab5 import (
     MAX_N,
     METHODS,
     TITLES,
@@ -59,7 +57,7 @@ def check(name: str, fn):
     except AssertionError as exc:
         failures.append(f"{name}: {exc}")
         print(f"FAIL {name}: {exc}")
-    except Exception as exc:                        # noqa: BLE001
+    except Exception as exc:
         failures.append(f"{name}: {type(exc).__name__}: {exc}")
         print(f"FAIL {name}: {type(exc).__name__}: {exc}")
     else:
@@ -75,8 +73,6 @@ def all_blocks(n: int) -> list[str]:
     return ["".join(bits) for bits in itertools.product("01", repeat=n)]
 
 
-# --- 1. структура -------------------------------------------------------------
-
 def c_tabs():
     names = ["Общие сведения", "Ввод данных", "АПК", "КДС", "ИПП", "УК", "Графики"]
     assert page.tabs.count() == 7, page.tabs.count()
@@ -91,22 +87,17 @@ def c_tabs():
 check("структура: 7 вкладок Form6 и поля методов", c_tabs)
 
 
-# --- 2. единичная длина и биномиальные коэффициенты ----------------------------
-
 def c_unit_len():
     assert [unit_len(n) for n in (1, 2, 3, 4, 7, 8, 15, 16, 31, 32, 100)] == \
         [1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 7]
     for n in range(1, 200):
         assert unit_len(n) == math.ceil(math.log2(n + 1)), n
         assert unit_len(n) == (n + 1 - 1).bit_length(), n
-    # n = 2^m − 1 — «степень двойки» в форме, L точная
     assert [unit_len(2 ** m - 1) for m in range(1, 7)] == [1, 2, 3, 4, 5, 6]
 
 
 check("L = ⌈log₂(n+1)⌉ целочисленно, включая n = 2^m − 1", c_unit_len)
 
-
-# --- 3. декодирование всех методов ---------------------------------------------
 
 def c_decode_small():
     for n in range(1, 11):
@@ -134,8 +125,6 @@ def c_decode_random():
 check("декодирование: случайные блоки до n = 64", c_decode_random)
 
 
-# --- 4. длина слова равна формуле ----------------------------------------------
-
 def c_lengths():
     for n in range(1, 13):
         for block in all_blocks(n):
@@ -144,14 +133,11 @@ def c_lengths():
             for m in ("apk", "kds", "uk"):
                 code = encode(m, block)
                 assert code.length == expected_length(m, block), (m, block, code.length)
-            # АПК: K позиций по L бит (K = 0 — одно слово)
             assert encode("apk", block).length == unit * max(k, 1), block
-            # КДС: t серий по L бит
             series = kds_series(block)
             assert encode("kds", block).length == unit * len(series), block
             if k == 0:
                 assert series == [0], block
-            # УК: l1 + l2, l2 = 0 при K = 0, K = n, n = 1
             code = encode("uk", block)
             l1, l2 = code.extra["l1"], code.extra["l2"]
             assert code.length == l1 + l2, block
@@ -170,15 +156,12 @@ def c_ipp_no_lengthen():
             code = encode("ipp", block)
             assert code.length <= n, (block, code.word)
             assert code.length == len(code.word), block
-    # на длинных блоках с редкими единицами ИПП реально сжимает
     code = encode("ipp", "0" * 30 + "1" + "0" * 30)
     assert code.length < 61, code.word
 
 
 check("ИПП не удлиняет строку (L ≤ N) и сжимает редкие единицы", c_ipp_no_lengthen)
 
-
-# --- 5. пример из справки n = 8 -------------------------------------------------
 
 SRC = "01101101"
 
@@ -194,7 +177,6 @@ def c_reference_example():
     assert kds.word == "00100001001000010010", kds.word
     assert kds.extra["series"] == [2, 1, 2, 1, 2], kds.extra["series"]
     assert ipp.word == SRC and ipp.length == 8, (ipp.word, ipp.length)
-    # УК: b = 32, l = 4 + 6 = 10 (image060.gif: «4+6»)
     assert uk.extra["b"] == 32, uk.extra["b"]
     assert (uk.extra["l1"], uk.extra["l2"]) == (4, 6), uk.extra
     assert uk.word == "0101100000", uk.word
@@ -211,7 +193,6 @@ check("пример справки n=8: b=32, 4+6=10 бит, Kсж УК=0.8, с�
 
 
 def c_reference_table_52():
-    # табл. 5.2: n = 100, l1 = 7; для K = 1…3 точные значения совпадают со справкой
     l1 = unit_len(100)
     assert l1 == 7, l1
     for k, l2, total in ((1, 7, 14), (2, 13, 20), (3, 18, 25)):
@@ -239,14 +220,11 @@ def c_edge_cases():
     for block in ("0", "1", "01", "10", "00", "11"):
         for m in METHODS:
             assert encode(m, block).ok, f"{TITLES[m]} на {block}"
-    # n = 1: l2 = 0 у УК
     assert encode("uk", "1").extra["l2"] == 0
 
 
 check("крайние случаи: K=0, K=N, N=1", c_edge_cases)
 
-
-# --- 6. границы ----------------------------------------------------------------
 
 def c_bounds():
     for n in range(2, 11):
@@ -256,14 +234,12 @@ def c_bounds():
                 code = encode(m, block)
                 assert code.kc <= code.class_kc + 1e-9, \
                     f"{TITLES[m]} {block}: Kсж {code.kc} > предела {code.class_kc}"
-    # ИПП чувствителен к расположению — граница выполняется в среднем по классу
     for n in (8, 10, 12):
         for k in range(1, n):
             blocks = [b for b in all_blocks(n) if b.count("1") == k]
             avg = sum(encode("ipp", b).kc for b in blocks) / len(blocks)
             bound = n / math.log2(math.comb(n, k))
             assert avg <= bound + 1e-9, (n, k, avg, bound)
-    # предел Шеннона 1/H(p) выводится и не меньше единицы при 0 < p < 1
     for p in (0.1, 0.25, 0.5, 0.75):
         assert 1 / bin_entropy(p) >= 1.0 - 1e-12, p
 
@@ -284,8 +260,6 @@ def c_entropy_monotone():
 check("H(p): симметрия и максимум при p = 0.5", c_entropy_monotone)
 
 
-# --- 7. чувствительность к расположению ----------------------------------------
-
 def positions_of_blocks(n: int, k: int) -> list[str]:
     out = []
     for ones in itertools.combinations(range(n), k):
@@ -304,7 +278,6 @@ def c_sensitivity():
     assert lens["kds"] == {4, 8}, lens["kds"]
     assert len(lens["ipp"]) > 1, lens["ipp"]
     assert lens["ipp"] == {3, 4, 5, 6}, lens["ipp"]
-    # КДС: хвост появляется, когда блок не кончается единицей
     tail = [b for b in blocks if b.endswith("0")]
     assert all(encode("kds", b).length == 8 for b in tail), "нет хвостовой серии"
     assert encode("kds", "0000000001").length == 4
@@ -313,15 +286,12 @@ def c_sensitivity():
     lens8 = {m: {encode(m, b).length for b in blocks8} for m in METHODS}
     assert lens8["apk"] == {16} and lens8["uk"] == {11}, lens8
     assert lens8["kds"] == {16, 20}, lens8["kds"]
-    # один и тот же K — разные длины у КДС
     assert encode("kds", "11110000").length == 20
     assert encode("kds", "00001111").length == 16
 
 
 check("чувствительность к расположению: АПК/УК постоянны, КДС и ИПП — нет", c_sensitivity)
 
-
-# --- 8. страница ---------------------------------------------------------------
 
 def c_page_numbers():
     page.set_block(SRC)
@@ -376,13 +346,11 @@ def c_validation():
     page.encode_all()
     assert "Допустимы только символы 0 и 1" in page.status.text(), page.status.text()
 
-    # предел длины: поле не даёт ввести больше MAX_N, проверка ловит обход
     assert page.edit.maxLength() == MAX_N, page.edit.maxLength()
     assert "Неверная длина блока" in check_block("1" * (MAX_N + 1))
     assert check_block("1" * MAX_N) == ""
     page.edit.setText("1" * (MAX_N + 1))
     assert len(page.block()) == MAX_N, len(page.block())
-    # валидатор не пропускает посторонние символы при наборе
     page.edit.clear()
     page.edit.insert("0101")
     assert page.block() == "0101", page.block()
@@ -417,8 +385,6 @@ def c_buttons():
 check("кнопки «Блок №1/№2», «Сброс блока», «Сброс всей информации»", c_buttons)
 
 
-# --- 9. графики ----------------------------------------------------------------
-
 def c_graphs():
     page.set_block(SRC)
     page.n1.setValue(8)
@@ -432,7 +398,6 @@ def c_graphs():
     labels = [t.get_text() for t in cv.ax.get_legend().get_texts()]
     assert any("граница 1/H" in t for t in labels), labels
     assert all(any(TITLES[m] in t for t in labels) for m in METHODS), labels
-    # точка семейства при p = 0.5 для n = 8: Kсж АПК = 8/(4·4) = 0.5
     apk_line = [ln for ln in labeled if ln.get_label().startswith("АПК, n=8")][0]
     y = dict(zip(apk_line.get_xdata(), apk_line.get_ydata()))
     approx(float(y[0.5]), 0.5, 1e-12, "Kсж АПК при p = 0.5, n = 8")
@@ -459,8 +424,6 @@ def c_group_word():
 check("разбивка слова по частям метода", c_group_word)
 
 
-# --- 10. низкоуровневые функции ------------------------------------------------
-
 def c_helpers():
     word, unit, pos = apk_encode(SRC)
     assert (word, unit, pos) == ("00100011010101101000", 4, [2, 3, 5, 6, 8])
@@ -470,11 +433,11 @@ def c_helpers():
     word, unit, series = kds_encode(SRC)
     assert (word, unit, series) == ("00100001001000010010", 4, [2, 1, 2, 1, 2])
     assert kds_decode(word, unit, 8, 5) == SRC
-    assert kds_decode("111", 4, 8, 5) == ""          # обрезанное слово
+    assert kds_decode("111", 4, 8, 5) == ""
     word, l1, l2, b = uk_encode(SRC)
     assert (word, l1, l2, b) == ("0101100000", 4, 6, 32)
     assert uk_decode(word, 8, l1, l2) == SRC
-    assert uk_decode("1111111111", 8, 4, 6) == ""    # K > n
+    assert uk_decode("1111111111", 8, 4, 6) == ""
     word, trace = ipp_encode("001100")
     assert word == "11110" and len(trace) == 3, (word, trace)
     assert ipp_decode(word, trace) == "001100"
@@ -483,8 +446,6 @@ def c_helpers():
 
 check("функции методов: слова, отказы декодера, трасса ИПП", c_helpers)
 
-
-# --- 11. скриншоты -------------------------------------------------------------
 
 def shot(name: str) -> None:
     app.processEvents()

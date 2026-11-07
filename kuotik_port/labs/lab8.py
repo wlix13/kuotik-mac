@@ -1,12 +1,3 @@
-"""ЛР8: циклический код Хэмминга — форма Form10 (5 вкладок).
-
-Вкладки: «Общие сведения», «Ввод данных», «Описание модели», «Модель кодера»,
-«Модель декодера». Модель — фильтр (сдвигающий регистр с обратными связями) над
-GF(2): деление на порождающий многочлен g(x), систематическое кодирование
-R(x) = [A(x)·x^(n−k)] mod g(x), синдром принятого слова, таблица синдромов
-одиночных ошибок, пороги схем совпадения многоканального декодера.
-"""
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -111,11 +102,8 @@ v входов и v выходов; чтобы остаток не требов�
 """
 
 
-# --- параметры кодов ------------------------------------------------------------
-
 @dataclass(frozen=True)
 class CodeParams:
-    """Циклический код Хэмминга: (n, k), порождающий многочлен g(x)."""
 
     n: int
     k: int
@@ -138,14 +126,11 @@ POLYNOMIALS: tuple[CodeParams, ...] = (
 )
 
 
-# --- полиномы над GF(2) ---------------------------------------------------------
-
 def poly_deg(p: int) -> int:
     return p.bit_length() - 1
 
 
 def poly_mod(a: int, g: int) -> int:
-    """Остаток a(x) mod g(x) — то, что считает фильтр."""
     r = poly_deg(g)
     if g == 0:
         raise ValueError("нулевой порождающий многочлен")
@@ -184,7 +169,6 @@ def parse_bits(text: str) -> int | None:
 
 
 def rot(value: int, length: int, shift: int) -> int:
-    """Циклический сдвиг влево на shift разрядов в поле длины length."""
     shift %= length
     if shift == 0:
         return value
@@ -192,10 +176,7 @@ def rot(value: int, length: int, shift: int) -> int:
     return ((value << shift) | (value >> (length - shift))) & mask
 
 
-# --- модель кода ----------------------------------------------------------------
-
 class CyclicCode:
-    """Циклический (n, k) код Хэмминга с порождающим g(x) и v каналами."""
 
     def __init__(self, params: CodeParams):
         self.p = params
@@ -205,32 +186,24 @@ class CyclicCode:
         self.g = params.g
         self.gtail = self.g & ((1 << self.r) - 1)
 
-    # -- параметры многоканального режима --
 
     def pad(self, channels: int = 1) -> int:
-        """Фиктивные ведущие нули: длина информационной части кратна v."""
         return (-self.k) % channels if channels > 1 else 0
 
     def length(self, channels: int = 1) -> int:
-        """Длина передаваемого слова: n = k + r (фиктивные нули не передаются)."""
         return self.n
 
     def clocks(self, channels: int = 1) -> int:
-        """Такты фильтра: pad фиктивных нулей и n разрядов слова."""
         return self.pad(channels) + self.n
 
     def threshold(self, channels: int = 1) -> int:
-        """Порог мажоритарного элемента: ⌊v/2⌋+1."""
         return channels // 2 + 1
 
-    # -- кодер --
 
     def check_bits(self, message: int, channels: int = 1) -> int:
-        """R(x) = [A(x)·x^(n−k)] mod g(x); ведущие нули остаток не меняют."""
         return poly_mod(message << self.r, self.g)
 
     def encode(self, message: int, channels: int = 1) -> int:
-        """Систематическое слово: k информационных, r проверочных."""
         return (message << self.r) | poly_mod(message << self.r, self.g)
 
     def info_part(self, word: int, channels: int = 1) -> int:
@@ -239,20 +212,17 @@ class CyclicCode:
     def check_part(self, word: int, channels: int = 1) -> int:
         return word & ((1 << self.r) - 1)
 
-    # -- декодер --
 
     def syndrome(self, word: int) -> int:
         return poly_mod(word, self.g)
 
     def error_table(self, channels: int = 1) -> list[tuple[int, int]]:
-        """[(разряд p, синдром x^p mod g)] для всех p длины слова."""
         return [(p, poly_mod(1 << p, self.g)) for p in range(self.length(channels))]
 
     def syndromes_by_value(self, channels: int = 1) -> dict[int, int]:
         return {s: p for p, s in self.error_table(channels)}
 
     def trace(self, word: int, channels: int = 1) -> list[int]:
-        """Состояния фильтра по тактам: остаток префикса слова."""
         length = self.length(channels)
         rem = 0
         out: list[int] = [0] * self.pad(channels)
@@ -266,7 +236,6 @@ class CyclicCode:
 
     def autonomous(self, syndrome: int, clocks: int | None = None,
                    channels: int = 1) -> list[int]:
-        """Автономные состояния x^t·s(x) mod g(x), t = 0…clocks."""
         clocks = self.clocks(channels) if clocks is None else clocks
         out: list[int] = []
         s = syndrome
@@ -278,7 +247,6 @@ class CyclicCode:
         return out
 
     def thresholds(self, channels: int = 1) -> list[tuple[int, int, int, int]]:
-        """[(канал, такт в канале, разряд p, порог-вычет)] — схемы совпадения."""
         rows: list[tuple[int, int, int, int]] = []
         for p, s in self.error_table(channels):
             rows.append((p % channels, p // channels, p, s))
@@ -296,7 +264,6 @@ class CyclicCode:
                                 failed=False, miscorrected=False, channel=None,
                                 clock=None)
 
-        # мажоритарное голосование: v каналов, сдвиг слова на номер канала
         votes: dict[int, int] = {}
         for c in range(channels):
             s_c = self.syndrome(rot(word, length, c))
@@ -327,27 +294,23 @@ class CyclicCode:
 
 @dataclass
 class DecodeResult:
-    """Итог декодирования одного слова."""
 
     syndrome: int
-    clean: bool                 # синдром нулевой
-    position: int | None        # исправленный разряд (0 = младший)
+    clean: bool
+    position: int | None
     corrected: int
     length: int
     votes: int
     threshold: int
-    failed: bool                # порог мажоритария не достигнут
-    miscorrected: bool          # синдром указывает на разряд, но слово не то
+    failed: bool
+    miscorrected: bool
     channel: int | None
     clock: int | None
 
     @property
     def pos_num(self) -> int | None:
-        """Номер разряда так, как он подписан в форме: 1 — младший."""
         return None if self.position is None else self.position + 1
 
-
-# --- виджеты --------------------------------------------------------------------
 
 def _mono_font() -> QFont:
     font = QFont("Menlo")
@@ -363,7 +326,6 @@ def _mono(text: str = "", size: int = 12) -> QLabel:
 
 
 class BitsEdit(QLineEdit):
-    """Поле двоичной комбинации фиксированной длины."""
 
     def __init__(self, length: int, value: int = 0, read_only: bool = False):
         super().__init__()
@@ -394,7 +356,6 @@ class BitsEdit(QLineEdit):
 
 
 class Ruler(QLabel):
-    """Строка номеров разрядов над полем (как Label18/17/22 формы)."""
 
     def __init__(self, length: int):
         super().__init__()
@@ -407,7 +368,6 @@ class Ruler(QLabel):
 
 
 class RegisterTable(QTableWidget):
-    """Такты фильтра: вход, состояние регистра, тип разряда или порог."""
 
     def __init__(self, headers: tuple[str, ...] = ("такт", "вход", "состояние", "порог")):
         super().__init__(0, 4)
@@ -425,10 +385,7 @@ class RegisterTable(QTableWidget):
                 self.setItem(i, j, QTableWidgetItem(text))
 
 
-# --- вкладка «Ввод данных» -------------------------------------------------------
-
 class InputPanel(QWidget):
-    """Каналы, порождающий многочлен, информационные разряды, остаток, ошибка."""
 
     def __init__(self, page: "Lab8Page"):
         super().__init__()
@@ -514,10 +471,7 @@ class InputPanel(QWidget):
         self.ruler_err.set_length(code.length(channels))
 
 
-# --- вкладка «Описание модели» ---------------------------------------------------
-
 class ModelPanel(QWidget):
-    """G(x) = 1 + G1·x + … + Gr·x^r, матрица связей M, её степени, вектор F*."""
 
     def __init__(self, page: "Lab8Page"):
         super().__init__()
@@ -568,7 +522,6 @@ class ModelPanel(QWidget):
         self.gmask.setText(f"Многочлен-маска g = {bits(g, r + 1)}, "
                            f"G(0) = {g & 1}, k = n − r = {code.k}")
 
-        # M: первый столбец — коэффициенты g при x^0…x^(r−1), далее единичная
         rows = []
         for i in range(r):
             row = []
@@ -615,10 +568,7 @@ class ModelPanel(QWidget):
         return "\n".join(out)
 
 
-# --- вкладка «Модель кодера» -----------------------------------------------------
-
 class CoderPanel(QWidget):
-    """Такты кодера: входные разряды, состояние фильтра, готовое слово."""
 
     def __init__(self, page: "Lab8Page"):
         super().__init__()
@@ -741,10 +691,7 @@ class CoderPanel(QWidget):
         self.canvas.draw_idle()
 
 
-# --- вкладка «Модель декодера» ---------------------------------------------------
-
 class DecoderPanel(QWidget):
-    """Такты декодера: принятое слово, состояния, синдром, пороги, исправление."""
 
     def __init__(self, page: "Lab8Page"):
         super().__init__()
@@ -885,10 +832,7 @@ class DecoderPanel(QWidget):
         self.canvas.draw_idle()
 
 
-# --- страница -------------------------------------------------------------------
-
 class Lab8Page(QWidget):
-    """Form10: пять вкладок, кодер и декодер циклического кода Хэмминга."""
 
     def __init__(self):
         super().__init__()
@@ -934,7 +878,6 @@ class Lab8Page(QWidget):
                         f"{bits(self.code.g)}: выберите каналы и многочлен, "
                         f"введите информационные разряды", ok=True)
 
-    # --- сборка -------------------------------------------------------------
 
     def _theory(self, html: str) -> QWidget:
         w = QWidget()
@@ -949,7 +892,6 @@ class Lab8Page(QWidget):
         self.status.setStyleSheet(
             f"color: {'#188038' if ok else '#b3261e'}; font-size: 12px; padding: 4px;")
 
-    # --- параметры ----------------------------------------------------------
 
     def set_params(self, index: int) -> None:
         params = POLYNOMIALS[index]
@@ -1000,7 +942,6 @@ class Lab8Page(QWidget):
         self.decoder.fill(code, self.channels, self.word, self.received, self.result,
                           self.decoder_states)
 
-    # --- расчёт -------------------------------------------------------------
 
     def _read_info(self) -> int | None:
         text = self.inp.f_info.text().strip()
@@ -1021,7 +962,6 @@ class Lab8Page(QWidget):
         return value
 
     def calc_remainder(self) -> int | None:
-        """«Рассчитать остаток»: R(x) и кодовое слово, готовность тактов кодера."""
         message = self._read_info()
         if message is None:
             return None
@@ -1052,7 +992,6 @@ class Lab8Page(QWidget):
         return rem
 
     def decode(self) -> DecodeResult | None:
-        """«Декодировать»: принятое слово A(x)+E(x), синдром, исправление."""
         if self.word is None:
             if self.calc_remainder() is None:
                 return None
@@ -1079,7 +1018,6 @@ class Lab8Page(QWidget):
         self.set_status(verdict, ok=ok)
         return res
 
-    # --- такты --------------------------------------------------------------
 
     def coder_next(self) -> None:
         if not self.coder_states:

@@ -1,9 +1,3 @@
-"""Headless-проверка ЛР8 (Form10): циклический код Хэмминга, кодер и декодер.
-
-Запуск: cd /home/wlix13/work/kuotik-mac && uv run python scripts/check_lab8.py
-Скриншоты: /tmp/shots-lab8 (переопределяется SHOTS).
-"""
-
 from __future__ import annotations
 
 import os
@@ -16,9 +10,9 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from PySide6.QtWidgets import QApplication  # noqa: E402
+from PySide6.QtWidgets import QApplication
 
-from kuotik_port.labs.lab8 import (  # noqa: E402
+from kuotik_port.labs.lab8 import (
     CHANNELS,
     MSG_FORMED,
     MSG_ZERO,
@@ -50,7 +44,7 @@ def check(name: str, fn):
     except AssertionError as exc:
         failures.append(f"{name}: {exc}")
         print(f"FAIL {name}: {exc}")
-    except Exception as exc:                        # noqa: BLE001
+    except Exception as exc:
         failures.append(f"{name}: {type(exc).__name__}: {exc}")
         print(f"FAIL {name}: {type(exc).__name__}: {exc}")
     else:
@@ -59,15 +53,12 @@ def check(name: str, fn):
 
 
 def messages(code: CyclicCode, limit: int = 1 << 6) -> list[int]:
-    """Все сообщения для малых k, иначе крайние и случайные."""
     if (1 << code.k) <= limit:
         return list(range(1 << code.k))
     rnd = random.Random(8)
     return [0, 1, (1 << code.k) - 1, 0b1011, (1 << (code.k - 1))] + \
         [rnd.getrandbits(code.k) for _ in range(6)]
 
-
-# --- 1. структура формы --------------------------------------------------------
 
 def c_tabs():
     assert page.tabs.count() == 5, page.tabs.count()
@@ -108,7 +99,6 @@ def c_fields():
     assert page.inp.ruler_info.text() == " 4  3  2  1"
     assert page.inp.ruler_rem.text() == " 3  2  1"
     assert page.inp.ruler_err.text() == " 7  6  5  4  3  2  1"
-    # подписи полей как в форме
     assert page.inp.l_info.text() == "Информационные разряды"
     assert page.inp.l_rem.text() == "Остаток"
     assert page.inp.l_err.text() == "Вектор ошибки"
@@ -125,8 +115,6 @@ def c_fields():
 check("поля «Ввод данных»: разрядность, линейки номеров, подписи, каналы", c_fields)
 
 
-# --- 2. многочлены -------------------------------------------------------------
-
 def c_generator():
     seen = set()
     for prm in POLYNOMIALS:
@@ -138,7 +126,6 @@ def c_generator():
             f"{prm.title}: g(x) не делит x^{code.n}+1"
         assert poly_mod(1 << code.n, code.g) == 1, "x^n mod g != 1"
         assert code.n == (1 << code.r) - 1, f"{prm.title}: n != 2^r-1"
-        # g(x) не делит x^d+1 при d < n — иначе период меньше
         for d in range(1, code.n):
             assert poly_mod((1 << d) | 1, code.g) != 0, (prm.title, d)
         seen.add((code.n, code.k, code.g))
@@ -165,7 +152,6 @@ check("кодовое расстояние d min = 3 у всех семи код
 
 
 def c_matrix():
-    """Матрица связей: первый столбец — коэффициенты g, остальное — единичная."""
     for prm in POLYNOMIALS:
         code = CyclicCode(prm)
         page.params = prm
@@ -188,8 +174,6 @@ def c_matrix():
 check("«Описание модели»: матрица связей M, g(x), вектор F*, степени M^v", c_matrix)
 
 
-# --- 3. кодирование ------------------------------------------------------------
-
 def c_encode():
     for prm in POLYNOMIALS:
         code = CyclicCode(prm)
@@ -209,7 +193,6 @@ check("систематическое кодирование: R(x), синдро
 
 
 def c_example_numbers():
-    """Числа примера из справки и порта: (7,4), g = 1011, A = 0111."""
     code = CyclicCode(POLYNOMIALS[1])
     assert bits(code.g, 4) == "1011"
     msg = 0b0111
@@ -218,7 +201,6 @@ def c_example_numbers():
     word = code.encode(msg)
     assert bits(word, 7) == "0111010", bits(word, 7)
     assert code.syndrome(word) == 0
-    # (31,26) g = 100101, A = 1011 → остаток
     c31 = CyclicCode(POLYNOMIALS[5])
     assert bits(c31.g, 6) == "100101"
     assert c31.check_bits(0b1011) == poly_mod(0b1011 << 5, 0b100101)
@@ -227,8 +209,6 @@ def c_example_numbers():
 
 check("числа примеров: (7,4) A=0111 → R=010, слово 0111010; (31,26)", c_example_numbers)
 
-
-# --- 4. одиночные и двойные ошибки ---------------------------------------------
 
 def c_single():
     for prm in POLYNOMIALS:
@@ -284,10 +264,8 @@ def c_no_error():
 check("без ошибки: синдром 0, вердикт «Код принят без ошибок»", c_no_error)
 
 
-# --- 5. пороги мажоритарного декодера ------------------------------------------
-
 def c_thresholds():
-    code = CyclicCode(POLYNOMIALS[1])           # (7,4), x³+x+1
+    code = CyclicCode(POLYNOMIALS[1])
     assert [code.threshold(v) for v in CHANNELS] == [1, 2, 2, 3, 3]
     for v in CHANNELS:
         assert code.threshold(v) == v // 2 + 1
@@ -300,12 +278,10 @@ def c_thresholds():
             assert s == poly_mod(1 << p, code.g)
             assert s != 0 and bits(s, code.r).count("1") >= 1
 
-    # таблица справки: два канала, коды 0 1 1 и 1 0 0
     two = {p: bits(s, 3) for ch, clk, p, s in code.thresholds(2)}
     assert two[3] == "011", two
     assert two[2] == "100", two
 
-    # порог достижим: одиночная ошибка собирает все голоса
     word = code.encode(0b101)
     for v in CHANNELS:
         for p in range(code.n):
@@ -317,7 +293,6 @@ check("пороги: ⌊v/2⌋+1, разбиение разрядов по ка�
 
 
 def c_autonomous():
-    """Автономный режим: состояния x^t·S mod g, через n тактов синдром повторяется."""
     code = CyclicCode(POLYNOMIALS[1])
     for p in range(code.n):
         s = poly_mod(1 << p, code.g)
@@ -325,7 +300,6 @@ def c_autonomous():
         assert len(states) == code.n
         assert states[0] == s
         assert states[-1] == poly_mod(s << (code.n - 1), code.g)
-        # сдвиг на n тактов возвращает вычет: x^n = 1 mod g
         assert code.autonomous(s, 1)[0] == s
         nxt = (s << 1) ^ (code.g if s >> (code.r - 1) else 0)
         assert code.autonomous(s, 2)[1] == nxt
@@ -334,11 +308,8 @@ def c_autonomous():
 check("автономная работа фильтра: S(t) = x^t·S mod g, период n", c_autonomous)
 
 
-# --- 6. интерфейс: расчёт, такты, вердикты -------------------------------------
-
 def use(poly: int = 1, channels: int = 1, info: int | None = None,
         err: int | None = None) -> None:
-    """Привести страницу к заданному коду/каналам и вводу."""
     page.inp.rb_poly[poly].setChecked(True)
     page.set_params(poly)
     page.inp.rb_channels[channels - 1].setChecked(True)
@@ -392,14 +363,12 @@ def c_decoder_ui():
         page.decoder_next()
     assert "Исправлен разряд 7" in page.status.text()
 
-    # без ошибки
     page.inp.f_err.set_bits(0)
     res = page.decode()
     assert res.clean
     assert page.decoder.verdict.text() == MSG_ZERO
     assert MSG_ZERO in page.status.text()
 
-    # двойная ошибка — обнаружена, исправление помечено неверным
     page.inp.f_err.set_bits(0b1000001)
     res = page.decode()
     assert not res.clean and res.miscorrected
@@ -447,8 +416,6 @@ def c_poly_ui():
 
 check("переключение многочленов: 7 кодов, разрядность полей, остаток", c_poly_ui)
 
-
-# --- 7. скриншоты --------------------------------------------------------------
 
 def shot(name: str) -> None:
     app.processEvents()
@@ -505,8 +472,6 @@ def c_shots():
 
 check("скриншоты всех 5 вкладок и расчётных примеров", c_shots)
 
-
-# --- итог ----------------------------------------------------------------------
 
 print()
 print(f"итого: {len(passed)} проверок пройдено, {len(failures)} провалено")

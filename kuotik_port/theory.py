@@ -1,5 +1,3 @@
-"""Теория работы: страница справки вместо сокращённого пересказа."""
-
 from __future__ import annotations
 
 from pathlib import Path
@@ -23,7 +21,6 @@ def _page(book: str) -> Path | None:
 
 
 def theory_page(book: str) -> tuple[str, QUrl] | None:
-    """HTML страницы справки и её база: формулы и картинки лежат рядом с .htm."""
     p = _page(book)
     if p is None:
         return None
@@ -36,7 +33,6 @@ def theory_html(book: str) -> str | None:
 
 
 def apply_theory(view: QTextBrowser, book: str, fallback: str) -> None:
-    """Показать страницу справки в готовом QTextBrowser, с базой для картинок."""
     got = theory_page(book)
     if got:
         view.document().setBaseUrl(got[1])

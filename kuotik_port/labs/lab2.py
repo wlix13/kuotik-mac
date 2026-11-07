@@ -1,5 +1,3 @@
-"""ЛР2: непериодические сигналы — вкладки как в КУ ОТИК, расчёт из mathlib/pulses.py."""
-
 from __future__ import annotations
 
 import math
@@ -22,7 +20,7 @@ from ..mathlib import pulses as p
 from ..plot import Canvas
 from ..theory import apply_theory
 
-W_MAX = 3.0                                      # ось ω графиков программы, рад/с
+W_MAX = 3.0
 
 THEORY = """<h3>Экспоненциальный импульс</h3>
 <p>x(t) = h·e<sup>−β(t − t0)</sup> при t ≥ t0, x(t) = 0 при t &lt; t0. h — высота, β &gt; 0 — скорость
@@ -48,7 +46,6 @@ S(ω) = h/ω, Θ(ω) = −ω·t0 − π/2.</p>
 
 
 def _lam(w, b):
-    """λ(ωc) для массива ωc; p.lam — только для скаляров."""
     return 2 / math.pi * np.arctan(np.asarray(w, float) / b)
 
 
@@ -82,7 +79,6 @@ class Lab2Page(QWidget):
         self._q_draw()
         self._say("«Обновить» добавляет кривую к нарисованным, «Очистить» стирает график вкладки.")
 
-    # --- вкладки -------------------------------------------------------------
 
     def _theory_tab(self) -> QWidget:
         w = QWidget()
@@ -166,7 +162,6 @@ class Lab2Page(QWidget):
         lay.addLayout(row)
         return w
 
-    # --- построение контролов -------------------------------------------------
 
     @staticmethod
     def _spin(lo: float, hi: float, val: float, step: float = 0.1, dec: int = 2) -> QDoubleSpinBox:
@@ -207,7 +202,6 @@ class Lab2Page(QWidget):
         self.status.setStyleSheet("color:#9a2b1e; padding:2px 6px;" if warn
                                   else "color:#334; padding:2px 6px;")
 
-    # --- S(ω) ----------------------------------------------------------------
 
     def _s_update(self):
         hp = (self.s_h.value(), self.s_b.value(), self.s_t0.value())
@@ -239,7 +233,6 @@ class Lab2Page(QWidget):
             self.cv_s.ax.legend(fontsize=8, loc="upper right")
         self.cv_s.draw_idle()
 
-    # --- Θ(ω) ----------------------------------------------------------------
 
     def _q_update(self):
         hp = (self.q_h.value(), self.q_b.value(), self.q_t0.value())
@@ -266,7 +259,6 @@ class Lab2Page(QWidget):
             self.cv_q.ax.legend(fontsize=8, loc="lower left")
         self.cv_q.draw_idle()
 
-    # --- энергия -------------------------------------------------------------
 
     def _energy_update(self):
         h, b, lam = self.e_h.value(), self.e_b.value(), self.e_lam.value()
@@ -301,7 +293,6 @@ class Lab2Page(QWidget):
         self._energy_update()
         self._say("Энергия: график очищен.")
 
-    # --- ряд Котельникова ----------------------------------------------------
 
     def _kot_update(self):
         if self.wc <= 0:

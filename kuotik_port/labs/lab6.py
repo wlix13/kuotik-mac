@@ -1,16 +1,8 @@
-"""ЛР6: информационная пропускная способность двоичного канала — форма Form7.
-
-Шесть вкладок формы: теория, ДК (p1, p2), ДСКС (p, q), циклический код (три
-задачи), две поверхности C = F[p1,p2] и C = F[p,q]. Панель графики повторяет
-Panel8: поверхность, подписи осей, таблица 255 точек, «Сброс» и «Выход».
-"""
-
 from __future__ import annotations
 
 import math
 
 import numpy as np
-from mpl_toolkits.mplot3d import Axes3D  # noqa: F401  (регистрирует проекцию 3d)
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QAbstractItemView,
@@ -42,13 +34,13 @@ TABS = (
     "С = F [p1,p2]",
     "C = F [p,q]",
 )
-FIELD_MASK = "0.00000"                 # маска TMaskEdit формы: пять знаков после точки
+FIELD_MASK = "0.00000"
 FIVE = 5
 EPS = 1e-10
-SURFACE_N = 15                          # 15 x 17 = 255 строк таблицы, как в Panel8
+SURFACE_N = 15
 CODES = {"КОД (7,4)": (7, 4), "КОД (15,11)": (15, 11), "КОД (31,26)": (31, 26)}
 DEFAULT_CODE = "КОД (7,4)"
-P_OSH = 0.05                            # p ош из табл. 6.1 справки
+P_OSH = 0.05
 
 MSG_P_GT1 = "Условные вероятности p1 и p2 не могут быть больше 1. Повторите ввод."
 MSG_PQ_GT1 = "Сумма p и q не может быть больше 1. Повторите ввод."
@@ -121,31 +113,25 @@ p<sub>пп</sub> = 1 − p<sub>но</sub> − p<sub>оо</sub>.</p>
 там s = 1 − p1 − p2 обращается в нуль и C = 0.</p>"""
 
 
-# --- математика ---------------------------------------------------------------
-
 def bin_entropy(p: float) -> float:
-    """H(p) = −p·log₂p − (1−p)·log₂(1−p), бит."""
     if p <= 0.0 or p >= 1.0:
         return 0.0
     return -p * math.log2(p) - (1.0 - p) * math.log2(1.0 - p)
 
 
 def nat_entropy(p: float) -> float:
-    """h(p) = −p·ln p − (1−p)·ln(1−p), нат — как в формулах для B."""
     if p <= 0.0 or p >= 1.0:
         return 0.0
     return -p * math.log(p) - (1.0 - p) * math.log(1.0 - p)
 
 
 def fmt(value: float) -> str:
-    """Пять знаков после точки — формат Label формы."""
     if not math.isfinite(value):
         return MSG_UNDEF
     return f"{value:.5f}"
 
 
 def parse_field(text: str) -> float | None:
-    """Текст TMaskEdit → число; None при неверном вводе."""
     s = (text or "").strip().replace(",", ".")
     if not s:
         return None
@@ -159,11 +145,6 @@ def parse_field(text: str) -> float | None:
 
 
 class DKResult:
-    """Промежуточные величины и C двоичного канала (вкладка «ДК»).
-
-    При p1 + p2 > 1 канал эквивалентен каналу с p1' = 1−p1, p2' = 1−p2 (перестановка
-    выходных символов не меняет H(X;Y)); s при этом остаётся отрицательным, как в форме.
-    """
 
     def __init__(self, p1: float, p2: float):
         self.p1, self.p2 = p1, p2
@@ -187,25 +168,20 @@ class DKResult:
         self.c = max(0.0, min(1.0, self.hy() - self.hyx()))
 
     def hy(self) -> float:
-        """H(Y) при z = z₀."""
         return bin_entropy(self.py1)
 
     def hyx(self) -> float:
-        """H(Y/X) = z₀·H(p1) + (1−z₀)·H(p2)."""
         return self.zo * bin_entropy(self.e1) + (1.0 - self.zo) * bin_entropy(self.e2)
 
     def hx(self) -> float:
-        """H(X) при оптимальном входе z = z₀."""
         return bin_entropy(self.zo)
 
     @property
     def info(self) -> float:
-        """I(X;Y) = H(Y) − H(Y/X) — то же, что C."""
         return self.c
 
     @property
     def redundancy(self) -> float:
-        """Избыточность канала R = 1 − C (доля недоиспользованной способности)."""
         return max(0.0, 1.0 - self.c)
 
     def __repr__(self) -> str:
@@ -214,28 +190,24 @@ class DKResult:
 
 
 class DSKSResult:
-    """Промежуточные величины и C канала со стиранием (вкладка «ДСКС»)."""
 
     def __init__(self, p: float, q: float):
         self.p, self.q = p, q
         self.s = 1.0 - p - q
-        self.zo = 0.5                     # канал симметричен по входу
+        self.zo = 0.5
         self.defined = self.s > EPS
         self.c = dsks_capacity(p, q) if self.defined else 0.0
 
     def hx(self) -> float:
-        """H(X) = 1: оптимальный вход равномерен."""
         return 1.0
 
     def hy(self) -> float:
-        """H(Y): P(0) = P(1) = (1−q)/2, P(c) = q."""
         if self.q >= 1.0:
             return 0.0
         half = (1.0 - self.q) / 2.0
         return -2.0 * half * math.log2(half) - self.q * math.log2(self.q)
 
     def hyx(self) -> float:
-        """H(Y/X) = H(s, p, q) — строки матрицы одинаковы."""
         total = 0.0
         for value in (self.s, self.p, self.q):
             if value > 0.0:
@@ -244,12 +216,10 @@ class DSKSResult:
 
     @property
     def info(self) -> float:
-        """I(X;Y) = H(Y) − H(Y/X) — то же, что C."""
         return self.c
 
     @property
     def redundancy(self) -> float:
-        """Избыточность канала R = 1 − C."""
         return max(0.0, 1.0 - self.c)
 
     def __repr__(self) -> str:
@@ -257,16 +227,10 @@ class DSKSResult:
 
 
 def dk_capacity(p1: float, p2: float) -> float:
-    """C = max_z [H(Y) − H(Y/X)] двоичного канала с вероятностями ошибок p1, p2."""
     return DKResult(p1, p2).c
 
 
 def dk_capacity_legacy(p1: float, p2: float) -> float:
-    """C так, как считает оригинал: в H(Y/X) веса z₀ и 1−z₀ перепутаны (p1↔p2).
-
-    При p1 ≠ p2 значение ниже истинного максимума; при p1 = p2 совпадает.
-    Оставлено для сверки с числами формы.
-    """
     r = DKResult(p1, p2)
     if not r.defined:
         return 0.0
@@ -275,7 +239,6 @@ def dk_capacity_legacy(p1: float, p2: float) -> float:
 
 
 def dsks_capacity(p: float, q: float) -> float:
-    """C ДСКС: (1−q)(1−log₂(1−q)) + s·log₂s + p·log₂p, s = 1−p−q."""
     s = 1.0 - p - q
     if s <= EPS:
         return 0.0
@@ -288,14 +251,12 @@ def dsks_capacity(p: float, q: float) -> float:
 
 
 def mutual_info(p1: float, p2: float, z: float) -> float:
-    """H(X;Y) = H(Y) − H(Y/X) для ДК при z = P(x1)."""
     z = min(max(z, 0.0), 1.0)
     py1 = z * (1.0 - p1) + (1.0 - z) * p2
     return bin_entropy(py1) - (z * bin_entropy(p1) + (1.0 - z) * bin_entropy(p2))
 
 
 def best_z(p1: float, p2: float, steps: int = 20001) -> tuple[float, float]:
-    """Численный максимум H(X;Y) по z — эталон для аналитического C."""
     best = (-1.0, 0.5)
     for i in range(1, steps):
         z = i / steps
@@ -306,7 +267,6 @@ def best_z(p1: float, p2: float, steps: int = 20001) -> tuple[float, float]:
 
 
 def code_probs(n: int, k: int, p_osh: float = P_OSH) -> tuple[float, float, float]:
-    """(p_но, p_оо, p_пп) циклического кода (N, k): 2^−(N−k)·p_ош и остаток."""
     share = 2.0 ** (-(n - k))
     p_no = share * p_osh
     p_oo = (1.0 - share) * p_osh
@@ -314,7 +274,6 @@ def code_probs(n: int, k: int, p_osh: float = P_OSH) -> tuple[float, float, floa
 
 
 def surface(which: str, n: int = SURFACE_N) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Сетка поверхности: ДК по (p1, p2), ДСКС по (p, q); вне s > 0 значения NaN."""
     axis = np.linspace(0.0, 1.0, n)
     grid_x, grid_y = np.meshgrid(axis, axis)
     func = dk_capacity if which == "dk" else dsks_capacity
@@ -324,7 +283,6 @@ def surface(which: str, n: int = SURFACE_N) -> tuple[np.ndarray, np.ndarray, np.
 
 
 def surface_rows(which: str) -> list[tuple[float, float, float]]:
-    """255 точек поверхности для таблицы Panel8 (15 x 17)."""
     xs = np.linspace(0.0, 0.99, SURFACE_N)
     ys = np.linspace(0.0, 0.99, SURFACE_N + 2)
     func = dk_capacity if which == "dk" else dsks_capacity
@@ -336,8 +294,6 @@ def surface_rows(which: str) -> list[tuple[float, float, float]]:
     return rows
 
 
-# --- элементы интерфейса ------------------------------------------------------
-
 def _mono(text: str = "", size: int = 12) -> QLabel:
     lbl = QLabel(text)
     lbl.setStyleSheet(f"font-family:Menlo,Consolas,monospace; font-size:{size}px;")
@@ -346,7 +302,6 @@ def _mono(text: str = "", size: int = 12) -> QLabel:
 
 
 class NumField(QLineEdit):
-    """Поле с маской TMaskEdit '0.00000' и разбором значения по выходу."""
 
     def __init__(self, value: float = 0.0):
         super().__init__()
@@ -370,7 +325,6 @@ class Title(QLabel):
 
 
 class ResultRow(QWidget):
-    """Строка «подпись = значение» как пара TLabel формы."""
 
     def __init__(self, caption: str, width: int = 0):
         super().__init__()
@@ -392,10 +346,7 @@ class ResultRow(QWidget):
         self.value.setText("—")
 
 
-# --- вкладки ------------------------------------------------------------------
-
 class DKPanel(QWidget):
-    """Вкладка «ДК»: p1, p2, промежуточные величины s, B, D, Zo и C."""
 
     def __init__(self, page: "Lab6Page"):
         super().__init__()
@@ -499,7 +450,6 @@ class DKPanel(QWidget):
 
 
 class DSKSPanel(QWidget):
-    """Вкладка «ДСКС»: p, q, s, Zo = 0.5 и C."""
 
     def __init__(self, page: "Lab6Page"):
         super().__init__()
@@ -598,7 +548,6 @@ class DSKSPanel(QWidget):
 
 
 class TaskPanel(QWidget):
-    """Панель одной задачи вкладки циклического кода (Task1Panel..Task3Panel)."""
 
     TITLES = {
         1: ("Циклический код реализует только обнаруживающую способность :",
@@ -681,7 +630,6 @@ class TaskPanel(QWidget):
         return value
 
     def fill_from_code(self, n: int, k: int, p_osh: float = P_OSH) -> None:
-        """Подстановка p_но, p_оо (или p1, p2) по параметрам кода (N, k)."""
         p_no, p_oo, _ = code_probs(n, k, p_osh)
         if self.mode == 3:
             self.f_a.set_value(p_no)
@@ -692,7 +640,6 @@ class TaskPanel(QWidget):
 
 
 class CodePanel(QWidget):
-    """Вкладка «ДСКС реализующий заданный циклический код»: три задачи подряд."""
 
     def __init__(self, page: "Lab6Page"):
         super().__init__()
@@ -769,7 +716,6 @@ class CodePanel(QWidget):
 
 
 class SurfaceTab(QWidget):
-    """Вкладка поверхности C = F[p1,p2] или C = F[p,q]."""
 
     def __init__(self, which: str, caption: str):
         super().__init__()
@@ -786,7 +732,6 @@ class SurfaceTab(QWidget):
 
 
 def _plot_surface(canvas: Canvas, which: str) -> object:
-    """3D-поверхность C(p1,p2) или C(p,q) с цветовой шкалой; ось 3d — canvas.ax."""
     grid_x, grid_y, grid_z = surface(which)
     canvas.fig.clear()
     ax = canvas.fig.add_subplot(111, projection="3d")
@@ -807,7 +752,6 @@ def _plot_surface(canvas: Canvas, which: str) -> object:
 
 
 class GraphPanel(QWidget):
-    """Panel8 формы: поверхность канала, подписи осей и таблица 255 точек."""
 
     def __init__(self, page: "Lab6Page"):
         super().__init__()
@@ -938,7 +882,6 @@ class Lab6Page(QWidget):
         self.dsks.compute()
         self.fill_tasks()
 
-    # --- общее ---------------------------------------------------------------
 
     def _theory_tab(self) -> QWidget:
         w = QWidget()
@@ -954,7 +897,6 @@ class Lab6Page(QWidget):
         self.status.setStyleSheet(f"padding:4px; background:{bg};")
 
     def fill_tasks(self) -> None:
-        """Значения по умолчанию для трёх задач — по выбранному коду."""
         name = self.code.cb_code.currentText()
         n, k = CODES.get(name, CODES[DEFAULT_CODE])
         for task in self.code.tasks.values():
@@ -963,7 +905,6 @@ class Lab6Page(QWidget):
         self.code.tasks[3].f_b.set_value(0.10)
 
     def task_solved(self, mode: int, value: float) -> None:
-        """Реакция формы на верный расчёт: ResultPanel с формулой и «Продолжить»."""
         self.active_task = mode
         self.code.result_panel.setVisible(True)
         self.code.stack.setVisible(False)
@@ -976,7 +917,6 @@ class Lab6Page(QWidget):
         self.code.lbl_solved.setText(f"Задача {mode} решена верно: C = {fmt(value)}")
         self.set_status(f"Задача {mode}: C = {fmt(value)} бит/символ", ok=True)
 
-    # --- графика -------------------------------------------------------------
 
     def show_graph(self, which: str) -> None:
         self.graph_panel.load(which)

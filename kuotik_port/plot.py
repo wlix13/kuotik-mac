@@ -1,5 +1,3 @@
-"""Matplotlib canvases for lab pages: signal, harmonic set, spectrum table."""
-
 from __future__ import annotations
 
 import numpy as np
@@ -29,7 +27,6 @@ class Canvas(FigureCanvasQTAgg):
         self.ax.set_ylabel(ylabel)
 
     def signal(self, spec, n: int | None = None, title: str = ""):
-        """Сумма первых n гармоник (по умолчанию всех 10) на интервале графика программы."""
         t = np.linspace(-0.75, 0.75, 2001)
         n = n or len(spec.amps)
         part = spec.__class__(spec.key, spec.title, spec.formula, spec.a0_half,
@@ -43,7 +40,6 @@ class Canvas(FigureCanvasQTAgg):
         self.draw_idle()
 
     def harmonics(self, spec, n: int, title: str = ""):
-        """Каждая гармоника отдельно, как на вкладке «Гармоники»."""
         t = np.linspace(-0.75, 0.75, 2001)
         self.clear(title or "Гармоники", "t/T", "x(t)")
         colors = ["#b3261e", "#1a73e8", "#188038", "#8e24aa", "#f9ab00", "#00acc1", "#6d4c41",
@@ -59,7 +55,6 @@ class Canvas(FigureCanvasQTAgg):
         self.draw_idle()
 
     def bars(self, amps, phases, title: str = "Спектр"):
-        """Столбцы |A_k| с подписями фаз — то, что вводится во «Ввод спектра»."""
         self.clear(title, "k", "|A_k|")
         k = np.arange(1, len(amps) + 1)
         self.ax.bar(k, amps, color="#1a73e8", width=0.6)

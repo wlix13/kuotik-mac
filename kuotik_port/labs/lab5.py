@@ -1,10 +1,3 @@
-"""ЛР5: сжатие двоичных n-блоков — форма Form6.
-
-Методы: КДС (длины серий), АПК (адресно-позиционное), ИПП (итерации простых
-подстановок, Блох), УК (универсальное, Бабкин). Поля и числа повторяют исходную
-форму: N — длина блока, K — число единиц, L — длина слова, P(K) = K/N, Kc = N/L.
-"""
-
 from __future__ import annotations
 
 import itertools
@@ -38,8 +31,8 @@ from ..plot import Canvas
 from ..theory import apply_theory
 
 MAX_N = 64
-SENS_N = 12                          # полный перебор расположений единиц до этой длины
-SENS_MAX = 600                       # предел числа точек на графике чувствительности
+SENS_N = 12
+SENS_MAX = 600
 METHODS = ("apk", "kds", "ipp", "uk")
 TITLES = {"apk": "АПК", "kds": "КДС", "ipp": "ИПП", "uk": "УК"}
 LONG = {
@@ -140,37 +133,29 @@ L = 4 + ⌈log₂C(8,5)⌉ = 4 + ⌈log₂56⌉ = 4 + 6 = 10. Декодиров
 </ol>"""
 
 
-# --- математика ---------------------------------------------------------------
-
 def ceil_log2(m: int) -> int:
-    """⌈log₂ m⌉ точно, без плавающей точки."""
     return (m - 1).bit_length() if m > 1 else 0
 
 
 def unit_len(n: int) -> int:
-    """L = ⌈log₂(n+1)⌉ — длина позиции/серии в битах, как в форме."""
     return ceil_log2(n + 1)
 
 
 def bin_str(x: int, width: int) -> str:
-    """Двоичная запись x ровно в width бит (width = 0 — пустая строка)."""
     return format(x, f"0{width}b") if width > 0 else ""
 
 
 def bin_entropy(p: float) -> float:
-    """H(p) = −p·log₂p − (1−p)·log₂(1−p)."""
     if p <= 0.0 or p >= 1.0:
         return 0.0
     return -p * math.log2(p) - (1.0 - p) * math.log2(1.0 - p)
 
 
 def positions(block: str) -> list[int]:
-    """Позиции единиц, нумерация с 1."""
     return [i + 1 for i, c in enumerate(block) if c == "1"]
 
 
 def check_block(block: str) -> str:
-    """Валидация n-блока; возвращает текст ошибки или пустую строку."""
     if not block:
         return "Не выбран исследуемый блок!"
     if any(c not in "01" for c in block):
@@ -180,10 +165,7 @@ def check_block(block: str) -> str:
     return ""
 
 
-# --- методы -------------------------------------------------------------------
-
 def apk_encode(block: str) -> tuple[str, int, list[int]]:
-    """АПК: позиции единиц по L бит. Возвращает (слово, L, позиции)."""
     n = len(block)
     pos = positions(block)
     unit = unit_len(n)
@@ -193,7 +175,6 @@ def apk_encode(block: str) -> tuple[str, int, list[int]]:
 
 
 def apk_decode(word: str, unit: int, n: int, k: int) -> str:
-    """Обратное АПК: k позиций по unit бит."""
     if unit <= 0 or len(word) != unit * max(k, 1):
         return ""
     vals = [int(word[i:i + unit], 2) for i in range(0, len(word), unit)]
@@ -208,7 +189,6 @@ def apk_decode(word: str, unit: int, n: int, k: int) -> str:
 
 
 def kds_series(block: str) -> list[int]:
-    """Длины серий: до первой единицы, промежутки, хвост + 1 (0 — блок из нулей)."""
     n = len(block)
     pos = positions(block)
     if not pos:
@@ -220,14 +200,12 @@ def kds_series(block: str) -> list[int]:
 
 
 def kds_encode(block: str) -> tuple[str, int, list[int]]:
-    """КДС: длины серий по L бит. Возвращает (слово, L, серии)."""
     unit = unit_len(len(block))
     vals = kds_series(block)
     return "".join(bin_str(v, unit) for v in vals), unit, vals
 
 
 def kds_decode(word: str, unit: int, n: int, k: int) -> str:
-    """Обратное КДС при известном числе единиц k."""
     if unit <= 0 or len(word) % unit:
         return ""
     vals = [int(word[i:i + unit], 2) for i in range(0, len(word), unit)]
@@ -254,7 +232,6 @@ def kds_decode(word: str, unit: int, n: int, k: int) -> str:
 
 
 def ipp_step(s: str) -> str:
-    """Одна подстановка: 00→0, 01→11, 1→10; одиночный нуль в конце — 0."""
     out: list[str] = []
     i, n = 0, len(s)
     while i < n:
@@ -274,7 +251,6 @@ def ipp_step(s: str) -> str:
 
 
 def ipp_encode(block: str) -> tuple[str, list[str]]:
-    """ИПП: итерации до прекращения сжатия (не более 10). Возвращает (слово, шаги)."""
     s = block
     trace = [s]
     steps = 0
@@ -297,7 +273,6 @@ def ipp_encode(block: str) -> tuple[str, list[str]]:
 
 
 def _ipp_rev(r: str, target: int) -> str:
-    """Обратный шаг подстановки при известной длине результата target."""
     out: list[str] = []
     i, n = 0, len(r)
     while i < n:
@@ -319,7 +294,6 @@ def _ipp_rev(r: str, target: int) -> str:
 
 
 def ipp_decode(word: str, trace: list[str]) -> str:
-    """Обратный проход по шагам; длины шагов берутся из трассы кодирования."""
     s = word
     for target in reversed([len(t) for t in trace[:-1]]):
         s = _ipp_rev(s, target)
@@ -329,12 +303,10 @@ def ipp_decode(word: str, trace: list[str]) -> str:
 
 
 def uk_number(block: str) -> int:
-    """b = Σ C(i_j − 1, j) по позициям единиц."""
     return sum(math.comb(p - 1, j) for j, p in enumerate(positions(block), 1))
 
 
 def uk_encode(block: str) -> tuple[str, int, int, int]:
-    """УК: (слово, l1, l2, b)."""
     n = len(block)
     k = block.count("1")
     l1 = unit_len(n)
@@ -344,7 +316,6 @@ def uk_encode(block: str) -> tuple[str, int, int, int]:
 
 
 def uk_decode(word: str, n: int, l1: int, l2: int) -> str:
-    """Обратное УК: номер b разлагается по биномиальным коэффициентам."""
     if l1 <= 0 or len(word) != l1 + l2:
         return ""
     k = int(word[:l1], 2)
@@ -369,7 +340,6 @@ def uk_decode(word: str, n: int, l1: int, l2: int) -> str:
 
 @dataclass
 class Code:
-    """Результат сжатия одного блока одним методом."""
     method: str
     block: str
     word: str
@@ -416,19 +386,16 @@ class Code:
 
     @property
     def limit_kc(self) -> float:
-        """Граница Шеннона Kсж = 1/H(p) для двоичного источника."""
         h = self.entropy
         return math.inf if h <= 0 else 1.0 / h
 
     @property
     def class_kc(self) -> float:
-        """Предел для класса блоков с данным K: n/log₂C(n,K) (энтропия класса)."""
         c = math.comb(self.n, self.k)
         return math.inf if c <= 1 else self.n / math.log2(c)
 
 
 def encode(method: str, block: str) -> Code:
-    """Сжатие блока одним методом + проверка декодирования."""
     n, k = len(block), block.count("1")
     if method == "apk":
         word, unit, _ = apk_encode(block)
@@ -456,7 +423,6 @@ def encode_all(block: str) -> dict[str, Code]:
 
 
 def expected_length(method: str, block: str) -> int:
-    """Предельная длина слова по формуле метода (КДС, АПК, УК — точно)."""
     n, k = len(block), block.count("1")
     if method == "apk":
         return unit_len(n) * max(k, 1)
@@ -471,7 +437,6 @@ def expected_length(method: str, block: str) -> int:
 
 
 def group_word(code: Code) -> str:
-    """Слово с пробелами: по частям метода (АПК/КДС/УК), у ИПП — по 8 бит."""
     w = code.word
     if code.method == "ipp":
         return " ".join(w[i:i + 8] for i in range(0, len(w), 8))
@@ -483,7 +448,6 @@ def group_word(code: Code) -> str:
 
 
 def code_report(code: Code) -> str:
-    """Текст «Результат сжатия» — как Memo в форме."""
     n, k = code.n, code.k
     lines = [f"Исходный N-блок : {code.block}"]
     if code.method == "apk":
@@ -515,8 +479,6 @@ def code_report(code: Code) -> str:
     return "\n".join(lines)
 
 
-# --- интерфейс ----------------------------------------------------------------
-
 def _mono(text: str = "", size: int = 12) -> QLabel:
     lbl = QLabel(text)
     lbl.setStyleSheet(f"font-family:Menlo,Consolas,monospace; font-size:{size}px;")
@@ -525,7 +487,6 @@ def _mono(text: str = "", size: int = 12) -> QLabel:
 
 
 class MethodPanel(QWidget):
-    """Вкладка одного метода: параметры, слово, проверка декодирования."""
 
     def __init__(self, page: "Lab5Page", method: str):
         super().__init__()
@@ -643,7 +604,6 @@ class Lab5Page(QWidget):
         self.set_status("Готово: введите n-блок и нажмите «Кодировать»", ok=True)
         self.encode_all()
 
-    # --- вкладки ---------------------------------------------------------------
 
     def _theory_tab(self) -> QWidget:
         w = QWidget()
@@ -688,7 +648,6 @@ class Lab5Page(QWidget):
         self.edit.setPlaceholderText("например 01101101")
         lay.addWidget(self.edit)
 
-        # линейка позиций тем же шрифтом, что и строка блока
         for lbl in (ruler, ticks):
             lbl.setFont(self.edit.font())
             lbl.setStyleSheet("color:#777; padding:0px;")
@@ -763,7 +722,6 @@ class Lab5Page(QWidget):
         self.btn_draw.clicked.connect(self.draw_graphs)
         return w
 
-    # --- данные ----------------------------------------------------------------
 
     def block(self) -> str:
         return self.edit.text().strip()
@@ -846,7 +804,6 @@ class Lab5Page(QWidget):
                 item.setFlags(item.flags() & ~Qt.ItemIsEditable)
                 self.tbl_cmp.setItem(r, col, item)
 
-    # --- графики ---------------------------------------------------------------
 
     def _n_changed(self) -> None:
         self.k_sens.setMaximum(self.n1.value())
@@ -854,11 +811,9 @@ class Lab5Page(QWidget):
 
     @staticmethod
     def canonical_block(n: int, k: int) -> str:
-        """Канонический блок: k единиц, затем нули — хвост серии учитывается."""
         return "1" * k + "0" * (n - k)
 
     def family(self, method: str, n: int) -> tuple[list[float], list[float]]:
-        """Kсж(p) при фиксированном n; p = 0 (блок из нулей) — вырожденный случай."""
         xs, ys = [], []
         for k in range(1, n + 1):
             code = encode(method, self.canonical_block(n, k))
@@ -912,7 +867,6 @@ class Lab5Page(QWidget):
 
     @staticmethod
     def arrangements(n: int, k: int) -> list[str]:
-        """Все расположения k единиц; при большом C(n,K) — равномерная выборка."""
         total = math.comb(n, k)
         if total <= SENS_MAX:
             out = []
@@ -933,7 +887,6 @@ class Lab5Page(QWidget):
 
 
 def compare_blocks(block_a: str, block_b: str) -> list[str]:
-    """Длины слов двух блоков одной длины и K — для отчёта по чувствительности."""
     out = []
     for m in METHODS:
         ca, cb = encode(m, block_a), encode(m, block_b)

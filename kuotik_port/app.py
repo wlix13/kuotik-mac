@@ -1,5 +1,3 @@
-"""КУ ОТИК для macOS: список работ слева, вкладки работы справа, справка внутри."""
-
 from __future__ import annotations
 
 import sys
@@ -22,7 +20,6 @@ from .theme import app_style
 
 HELP_ROOT = help_root()
 
-# порядок в списке слева -> книга справки с порядком выполнения работы
 HELP_BOOKS = ["project1_3", "project2_3", "project3_3", "project4_3",
               "project5_3", "project6_3", "project7_3", "project8_3"]
 

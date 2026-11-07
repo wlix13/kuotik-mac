@@ -1,18 +1,9 @@
-"""Спектры сигналов ЛР1 в форме программы КУ ОТИК:
-
-    x(t) = A0/2 + Σ |A_k|·cos(k·ω0·t + Θ_k),  ω0 = 2π/T,  k = 1..10,
-    a_k = (2/T)∫x(t)cos(kω0t)dt,  b_k = (2/T)∫x(t)sin(kω0t)dt,  |A_k| = √(a_k² + b_k²),  Θ_k = −arctg(b_k/a_k)
-    (с учётом четверти: Θ_k = atan2(−b_k, a_k), так как a_k·cos − b_k·sin = |A_k|·cos(· + Θ_k)).
-
-Время — в долях периода (T = 1). Фазы приводятся к [−π, π): поле фазы в программе вмещает только ±9.999.
-Каждый аналитический спектр сверяется с численным интегрированием (check()).
-"""
 import math
 from dataclasses import dataclass, field, replace
 
 import numpy as np
 
-N = 10                                     # гармоник в программе
+N = 10
 PI = math.pi
 
 
@@ -22,13 +13,13 @@ def wrap(theta):
 
 @dataclass
 class Spectrum:
-    key: str                               # для имён файлов
-    title: str                             # по-русски, для таблиц и подписей
-    formula: str                           # x(t) на периоде
+    key: str
+    title: str
+    formula: str
     a0_half: float
-    amps: list = field(default_factory=lambda: [0.0] * N)     # |A_k|, k = 1..N
-    phases: list = field(default_factory=lambda: [0.0] * N)   # Θ_k, рад
-    x: object = None                       # исходный сигнал x(t), t в долях T (для численной проверки)
+    amps: list = field(default_factory=lambda: [0.0] * N)
+    phases: list = field(default_factory=lambda: [0.0] * N)
+    x: object = None
 
     def synth(self, t):
         t = np.asarray(t, float)
@@ -36,7 +27,6 @@ class Spectrum:
                                   for k, (a, q) in enumerate(zip(self.amps, self.phases), 1))
 
     def table(self):
-        """Строки таблицы задания: k = 0..10, A_k (для k = 0 — A0/2), Θ_k."""
         return [(0, self.a0_half, 0.0)] + [(k, a, q) for k, (a, q) in enumerate(zip(self.amps, self.phases), 1)]
 
 
@@ -50,7 +40,6 @@ def from_ab(key, title, formula, a0_half, a, b, x=None):
 
 
 def numeric(x, n=N, m=400_000):
-    """A0/2, a_k, b_k численно (метод средних прямоугольников по периоду [−T/2, T/2))."""
     t = (np.arange(m) + 0.5) / m - 0.5
     v = x(t)
     k = np.arange(1, n + 1)[:, None]
@@ -58,7 +47,6 @@ def numeric(x, n=N, m=400_000):
 
 
 def check(s, tol=1e-4):
-    """Аналитический спектр против численного интегрирования исходного сигнала."""
     if s.x is None:
         return
     c, a, b = numeric(s.x)
@@ -69,8 +57,6 @@ def check(s, tol=1e-4):
         if A > 1e-3:
             assert abs(wrap(Q - rQ)) < 1e-3, (s.key, k, Q, rQ)
 
-
-# ---------- сигналы задания ----------
 
 def constant(c):
     return Spectrum("const", "Постоянный уровень", f"x(t) = {c:g}", c, x=lambda t: np.full_like(t, c))
@@ -84,47 +70,35 @@ def harmonic(amp, phase=0.0, k=1):
 
 
 def triangle(h):
-    """Рис. 1.4: x(t) = (2h/T)|t| на [−T/2, T/2) — чётная: b_k = 0,
-    a_k = (8h/T²)∫₀^{T/2} t·cos(kω0t)dt = 2h((−1)^k − 1)/(πk)² = −4h/(πk)² для нечётных k, 0 для чётных."""
     a = [-4 * h / (PI * k) ** 2 if k % 2 else 0.0 for k in range(1, N + 1)]
     return from_ab("triangle", "Униполярные треугольные импульсы (рис. 1.4)", f"x(t) = (2h/T)|t|, h = {h:g}",
                    h / 2, a, [0.0] * N, x=lambda t: 2 * h * np.abs(t))
 
 
 def sawtooth(h):
-    """Рис. 1.5: x(t) = (2h/T)t на [−T/2, T/2) — нечётная: a_k = 0, A0 = 0,
-    b_k = (8h/T²)∫₀^{T/2} t·sin(kω0t)dt = −2h(−1)^k/(πk) = 2h(−1)^(k+1)/(πk)."""
     b = [2 * h * (-1) ** (k + 1) / (PI * k) for k in range(1, N + 1)]
     return from_ab("sawtooth", "Колебание пилообразной формы (рис. 1.5)", f"x(t) = (2h/T)t, h = {h:g}",
                    0.0, [0.0] * N, b, x=lambda t: 2 * h * t)
 
 
 def meander(h):
-    """Рис. 1.2 (пример из теории): b_k = 4h/(πk) для нечётных k."""
     b = [4 * h / (PI * k) if k % 2 else 0.0 for k in range(1, N + 1)]
     return from_ab("meander", "Меандр (рис. 1.2)", f"x(t) = ±h, h = {h:g}", 0.0, [0.0] * N, b,
                    x=lambda t: np.where(t >= 0, h, -h))
 
 
 def rect_pulses(h, q):
-    """Прямоугольные импульсы высоты h, длительности τ = T/q (скважность q), импульс по центру t = 0:
-    A0/2 = h/q, a_k = (2h/(πk))·sin(πk/q), b_k = 0."""
     a = [2 * h / (PI * k) * math.sin(PI * k / q) for k in range(1, N + 1)]
     return from_ab("rect", "Прямоугольные импульсы", f"x(t) = h при |t| < τ/2, h = {h:g}, τ = T/{q:g}",
                    h / q, a, [0.0] * N, x=lambda t: np.where(np.abs(t) < 0.5 / q, h, 0.0))
 
 
 def flat(level, a0_half):
-    """Произвольный спектр: все A_k = level, Θ_k = 0 → x(t) = A0/2 + level·Σcos(kω0t) (ядро Дирихле:
-    узкие импульсы с периодом T)."""
     return Spectrum("arbitrary", "Произвольный спектр: равные амплитуды", f"A0/2 = {a0_half:g}, A_k = {level:g}, Θ_k = 0",
                     a0_half, [level] * N, [0.0] * N)
 
 
-# ---------- доп. задание ----------
-
 def shifted(s, d):
-    """x(t − d·T): Θ_k → Θ_k − 2πk·d (d < 0 — сдвиг влево, опережение; d > 0 — вправо, запаздывание)."""
     x = (lambda t: s.x(((np.asarray(t) - d) + 0.5) % 1 - 0.5)) if s.x else None
     word = "влево" if d < 0 else "вправо"
     frac = {0.25: "T/4", 0.5: "T/2", 0.125: "T/8"}.get(abs(d), f"{abs(d):g}T")
@@ -135,7 +109,6 @@ def shifted(s, d):
 
 
 def freq_scaled(s, m):
-    """x(m·t): частота в m раз выше — гармоника k исходного сигнала встаёт на место m·k (до 10-й)."""
     amps, phases = [0.0] * N, [0.0] * N
     for k in range(1, N // m + 1):
         amps[m * k - 1], phases[m * k - 1] = s.amps[k - 1], s.phases[k - 1]
@@ -145,12 +118,9 @@ def freq_scaled(s, m):
 
 
 def window_max(s):
-    """Максимум суммы 10 гармоник на интервале графика программы (−0.75T…0.75T) — программа его подписывает."""
     t = np.linspace(-0.75, 0.75, 30001)
     return float(s.synth(t).max())
 
-
-# ---------- примеры с фото (перепроверка) ----------
 
 PHOTOS = {
     "Задачи.jpg, левое окно (треугольник, h = 2)": (
@@ -166,9 +136,6 @@ PHOTOS = {
 
 
 def compare_photo(ref, a0, amps, phases, exact=0.0006, minor=0.002):
-    """Отличия значений с фото от верных: [(поле, на фото, верно, ошибка?)].
-    Верная фаза берётся в той же ветви 2π, что и на фото (4.707 сравнивается с 4.712, а не с −1.571).
-    Отличие ≤ minor — усечение (π → 3.14, π/2 → 1.57, 0.1819 → 0.181), больше — ошибка."""
     diffs = []
     rows = [("A0/2", a0, ref.a0_half)] + [(f"A{k}", amps[k - 1], ref.amps[k - 1]) for k in range(1, N + 1)]
     rows += [(f"Θ{k}", phases[k - 1], phases[k - 1] + wrap(ref.phases[k - 1] - phases[k - 1]))

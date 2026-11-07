@@ -1,5 +1,3 @@
-"""Справка КУ ОТИК: распакованные .chm показываются как HTML в QTextBrowser."""
-
 from __future__ import annotations
 
 import html
@@ -36,7 +34,6 @@ def _title(name: str) -> str:
 
 
 def _books(root: Path) -> list[tuple[str, str]]:
-    """Все распакованные книги справки, сначала общие, затем по номерам работ."""
     have = sorted(d.name for d in root.iterdir() if d.is_dir())
     order = ["project", "projectl1", "projectl2", "projectz", "annotation", "uchprog"] + \
             [f"project{i}_{j}" for i in range(1, 9) for j in (1, 2, 3)]
@@ -45,7 +42,6 @@ def _books(root: Path) -> list[tuple[str, str]]:
 
 
 def help_root() -> Path | None:
-    """Справка: env KUOTIK_HELP, затем reference/chm рядом, затем распаковка bundled help.zip в кэш."""
     env = os.environ.get("KUOTIK_HELP")
     if env and Path(env).is_dir():
         return Path(env)
@@ -117,7 +113,6 @@ class HelpView(QWidget):
             self._load_book()
 
     def open_book(self, name: str, page_hint: str | None = None) -> bool:
-        """Выбрать книгу по имени каталога (project5_3) и, если задан, раздел по подстроке заголовка."""
         idx = self.books.findData(name)
         if idx < 0:
             return False

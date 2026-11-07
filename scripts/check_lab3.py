@@ -1,5 +1,3 @@
-"""Headless-проверка ЛР3 (fSpektr): вкладки, параметры, численные утверждения, скриншоты."""
-
 from __future__ import annotations
 
 import math
@@ -12,10 +10,10 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-import numpy as np  # noqa: E402
-from PySide6.QtWidgets import QApplication  # noqa: E402
+import numpy as np
+from PySide6.QtWidgets import QApplication
 
-from kuotik_port.labs.lab3 import KINDS, Lab3Page, dtft, fold_freq, spectrum_one_sided  # noqa: E402
+from kuotik_port.labs.lab3 import KINDS, Lab3Page, dtft, fold_freq, spectrum_one_sided
 
 OUT = Path(os.environ.get("SHOTS", "/tmp/shots-lab3"))
 OUT.mkdir(parents=True, exist_ok=True)
@@ -63,16 +61,11 @@ def assert_equal(a, b):
     assert a == b, f"{a!r} != {b!r}"
 
 
-# --- структура ---------------------------------------------------------------
-
 expected_tabs = ["Общие сведения", "Схема установки", "Осциллограф", "Спектр амплитуд",
                  "Корреляционная функция", "Спектральная плотность мощности"]
 check("вкладки формы", lambda: (
     assert_equal(page.tabs.count(), 6),
     assert_equal([page.tabs.tabText(i) for i in range(6)], expected_tabs)))
-
-
-# --- частота дискретизации и Найквист ---------------------------------------
 
 
 def c_sampling():
@@ -88,25 +81,18 @@ def c_sampling():
 check("частота дискретизации и граница Найквиста", c_sampling)
 
 
-# --- спектр гармоники --------------------------------------------------------
-
-
 def c_harmonic_peak():
     set_harm(freq=125.0, amp=1.0, dt=1.0, n=256)
     f, amp, spec = page.spectrum_data()
     k = int(np.argmax(amp))
     assert abs(f[k] - 125.0) <= page.fd / page.p.n, f"пик {f[k]} Гц"
     approx(amp[k], 1.0, 1e-6, "амплитуда пика")
-    # ДПФ на произвольной частоте совпадает с rfft в бинах
     for i in range(0, 12):
         z = dtft(page.x, page.p.dt_ms * 1e-3, f[i])[0]
         assert abs(z - spec[i]) < 1e-9, f"ДПФ bin {i}: {z} != {spec[i]}"
 
 
 check("пик спектра гармоники 125 Гц, A = 1 В", c_harmonic_peak)
-
-
-# --- периодические копии -----------------------------------------------------
 
 
 def c_copies():
@@ -119,15 +105,11 @@ def c_copies():
         twice = dtft(x, dt, f0 + 2 * fd)[0]
         for name, val in (("+Fд", plus), ("−Fд", minus), ("+2Fд", twice)):
             assert abs(base - val) < 1e-9, f"X({f0}) != X({f0}{name}): {abs(base - val)}"
-    # копия на вкладке: значения 0…Fд/2 повторяются со сдвигом Fд
     f, amp, _ = page.spectrum_data()
     assert np.allclose(amp, spectrum_one_sided(x, fd)[1]), "спектр на вкладке не совпал с rfft"
 
 
 check("периодичность спектра: X(f+Fд)=X(f)", c_copies)
-
-
-# --- алиасинг ----------------------------------------------------------------
 
 
 def c_alias():
@@ -145,9 +127,6 @@ def c_alias():
 check("наложение: 1250 Гц при Fд=1000 → 250 Гц + предупреждение", c_alias)
 
 
-# --- восстановление ФНЧ ------------------------------------------------------
-
-
 def c_restore():
     set_harm(freq=125.0, dt=1.0, n=256)
     xr = page.restore(page.t)
@@ -157,7 +136,6 @@ def c_restore():
     mid = (td > 0.25 * td[-1]) & (td < 0.75 * td[-1])
     err_mid = float(np.abs(page.xr[mid] - page.x_cont[mid]).max())
     assert err_mid < 5e-3, f"ошибка восстановления в середине {err_mid}"
-    # Δt = 2 мс при 125 Гц (T = 8 мс) — 4 отсчёта на период, восстановление ещё рабочее
     page.sp_dt.setValue(2.0)
     page.sp_wc.setValue(math.pi / 2e-3)
     page.model()
@@ -166,9 +144,6 @@ def c_restore():
 
 
 check("восстановление при Wc=π/Δt проходит через отсчёты", c_restore)
-
-
-# --- квантование -------------------------------------------------------------
 
 
 def c_quant():
@@ -182,9 +157,6 @@ def c_quant():
 check("квантование: max|xq−x| ≤ Δ/2", c_quant)
 
 
-# --- АКФ ---------------------------------------------------------------------
-
-
 def c_acf():
     set_harm(freq=125.0, amp=1.0, dt=1.0)
     tau, r = page.acf_data()
@@ -192,16 +164,12 @@ def c_acf():
     i = int(np.argmin(np.abs(tau - 2e-3)))
     assert abs(r[i]) < 2e-3, f"R(T/4) = {r[i]}"
     near = tau <= 4e-3
-    # конечная запись: R(τ) = (A²/2)(1 − τ/T)cos(2πfτ)
     th = 0.5 * (1 - tau[near] / (page.p.n * page.p.dt_ms * 1e-3)) * np.cos(2 * np.pi * 125.0 * tau[near])
     dev = float(np.abs(r[near] - th).max())
     assert dev < 2e-3, f"АКФ не совпала с (A²/2)(1−τ/T)cos: {dev}"
 
 
 check("АКФ синусоиды: R(0)=A²/2, R(T/4)=0", c_acf)
-
-
-# --- шум и СПМ ---------------------------------------------------------------
 
 
 def c_noise_psd():
@@ -226,9 +194,6 @@ def c_noise_psd():
 check("белый шум: дисперсия и СПМ ≈ 2σ²/Fд", c_noise_psd)
 
 
-# --- импульсы, смешанный ----------------------------------------------------
-
-
 def c_pulses():
     page.cb_kind.setCurrentText(KINDS[1])
     page.cb_n.setCurrentText("256")
@@ -240,7 +205,6 @@ def c_pulses():
     app.processEvents()
     assert set(np.unique(page.x)) <= {0.0, 2.0}, "импульсы не двухуровневые"
     approx(float(page.lbl_fup.text().split()[0]), 200.0, 0.1, "Fв = 1/τ")
-    # одиночный импульс: период больше записи
     page.sp_im_per.setValue(1000.0)
     page.model()
     idx = np.flatnonzero(page.x > 0)
@@ -266,9 +230,6 @@ def c_mixed():
 check("смешанный сигнал считается и строится", c_mixed)
 
 
-# --- очистка ----------------------------------------------------------------
-
-
 def c_clear():
     set_harm(freq=125.0)
     page.clear()
@@ -281,9 +242,6 @@ def c_clear():
 
 
 check("Очистить / Обновить", c_clear)
-
-
-# --- обход вкладок и скриншоты ----------------------------------------------
 
 
 def shot(name: str):
@@ -299,7 +257,6 @@ for i in range(page.tabs.count()):
     app.processEvents()
     shot(f"lab3-{i + 1}-tab.png")
 
-# характерные режимы
 set_harm(freq=125.0)
 page.tabs.setCurrentIndex(2)
 shot("lab3-scope-harmonic.png")

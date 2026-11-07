@@ -1,5 +1,3 @@
-"""ЛР3: дискретизация непрерывных сигналов по времени — форма fSpektr."""
-
 from __future__ import annotations
 
 import math
@@ -86,7 +84,7 @@ class Params:
     noise_var: float = 0.25
     dt_ms: float = 1.0
     quant: float = 0.0
-    wc: float = 0.0          # 0 → π/Δt
+    wc: float = 0.0
 
 
 def harmonic(t, p: Params):
@@ -104,7 +102,6 @@ def noise(n: int, p: Params, rng) -> np.ndarray:
 
 
 def continuous(t, p: Params):
-    """Непрерывная (детерминированная) часть; None для чистого шума."""
     if p.kind == KINDS[0]:
         return harmonic(t, p)
     if p.kind == KINDS[1]:
@@ -137,14 +134,12 @@ def ideal_lpf_ir(t, wc: float):
 
 
 def reconstruct(t, x: np.ndarray, dt: float, wc: float) -> np.ndarray:
-    """Идеальный ФНЧ: свёртка отсчётов с h(t)."""
     t = np.atleast_1d(np.asarray(t, dtype=float))
     grid = t[:, None] - (np.arange(len(x)) * dt)[None, :]
     return dt * (np.asarray(x, dtype=float)[None, :] * ideal_lpf_ir(grid, wc)).sum(axis=1)
 
 
 def fold_freq(f: float, fd: float) -> float:
-    """Частота-образ при дискретизации: свёртка спектра в 0…Fд/2."""
     r = abs(f) % fd
     return fd - r if r > fd / 2 else r
 
@@ -159,7 +154,6 @@ def spectrum_one_sided(x: np.ndarray, fd: float):
 
 
 def dtft(x: np.ndarray, dt: float, f):
-    """ДПФ на произвольной частоте — для проверки периодичности."""
     f = np.atleast_1d(np.asarray(f, dtype=float))
     n = np.arange(len(x))
     return (x[None, :] * np.exp(-2j * np.pi * n[None, :] * dt * f[:, None])).sum(axis=1) / len(x)
@@ -219,7 +213,6 @@ class Lab3Page(QWidget):
         lay.addWidget(self.status)
         self.model()
 
-    # --- вкладки -------------------------------------------------------------
 
     def _theory_tab(self) -> QWidget:
         w = QWidget()
@@ -295,7 +288,6 @@ class Lab3Page(QWidget):
         lay.addWidget(self.cv_psd)
         return w
 
-    # --- панель управления ---------------------------------------------------
 
     def _controls(self) -> QWidget:
         box = QWidget()
@@ -423,7 +415,6 @@ class Lab3Page(QWidget):
             f.addRow(label, widget)
         return w
 
-    # --- данные --------------------------------------------------------------
 
     def _read_params(self) -> Params:
         return Params(kind=self.cb_kind.currentText(), n=int(self.cb_n.currentText()),
@@ -453,7 +444,6 @@ class Lab3Page(QWidget):
         return 1000.0 / self.sp_dt.value()
 
     def model(self):
-        """Пересчитать сигнал и все графики по текущим полям."""
         self._rng = np.random.default_rng(0)
         self.p = self._read_params()
         dt = self.p.dt_ms * 1e-3
@@ -486,7 +476,6 @@ class Lab3Page(QWidget):
         self.status.setText(text)
 
     def restore(self, t) -> np.ndarray:
-        """Восстановленный сигнал в точках t (для проверок)."""
         dt = self.p.dt_ms * 1e-3
         return reconstruct(t, self.xq, dt, self.wc_eff)
 
@@ -513,7 +502,6 @@ class Lab3Page(QWidget):
         self.lbl_psd.setText("")
         self.status.setText("Данные очищены")
 
-    # --- рисование -----------------------------------------------------------
 
     def _draw_all(self):
         self._draw_scope()
@@ -600,12 +588,11 @@ class Lab3Page(QWidget):
         f, s = self.psd_data()
         cv = self.cv_psd
         cv.clear("Спектральная плотность мощности (периодограмма)", "f, Гц", "S, В²/Гц")
-        # лог. ось несовместима с нулевыми линиями из Canvas._style
         for ln in list(cv.ax.lines):
             if np.any(np.asarray(ln.get_ydata()) <= 0):
                 ln.remove()
         pos = s > 0
-        cv.ax.set_autoscaley_on(False)      # нулевая sticky-линия иначе ломает log
+        cv.ax.set_autoscaley_on(False)
         cv.ax.semilogy(f[pos], s[pos], color="#8e24aa", lw=1.4)
         cv.ax.set_ylim(float(s[pos].min()) * 0.5, float(s[pos].max()) * 2)
         if self.p.kind in (KINDS[2], KINDS[3]):
