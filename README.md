@@ -32,6 +32,8 @@
 Готовые архивы лежат в [релизах](https://github.com/wlix13/kuotik-mac/releases): `kuotik-macos.zip`,
 `kuotik-windows.zip`, `kuotik-linux.tar.gz`. Сборки не подписаны.
 
+Linux-архиву нужны системные `libgl1` и `libegl1` — без них Qt не стартует.
+
 ## Быстрый старт
 
 ```bash
