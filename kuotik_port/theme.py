@@ -21,8 +21,8 @@ QWidget { font-family: "Segoe UI", "SF Pro Text", "Helvetica Neue", Arial, sans-
           font-size: 13px; color: #1c1c1c; }
 QMainWindow, QDialog { background: #f0f0f0; }
 
-QListWidget { background: #ffffff; border: 1px solid #a8a8a8; padding: 2px; }
-QListWidget::item { padding: 7px 9px; }
+QListWidget { background: #ffffff; border: 1px solid #a8a8a8; padding: 2px; font-size: 12px; }
+QListWidget::item { padding: 6px 7px; }
 QListWidget::item:selected { background: #cce4f7; color: #10365f; }
 
 QTabWidget::pane { border: 1px solid #a8a8a8; background: #ffffff; top: -1px; }

@@ -96,7 +96,7 @@ class Main(QMainWindow):
         row = QHBoxLayout(body)
         row.setContentsMargins(0, 0, 0, 0)
         self.nav = QListWidget()
-        self.nav.setFixedWidth(300)
+        self.nav.setFixedWidth(330)
         self.nav.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.nav.setTextElideMode(Qt.ElideRight)
         for title, _ in LABS:
