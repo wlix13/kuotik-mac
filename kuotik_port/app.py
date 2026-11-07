@@ -54,6 +54,11 @@ def _lab_pages() -> dict:
         pages["lab4"] = lab4.Lab4Page
     except ImportError:
         pass
+    try:
+        from .labs import lab5
+        pages["lab5"] = lab5.Lab5Page
+    except ImportError:
+        pass
     return pages
 
 
