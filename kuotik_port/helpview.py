@@ -11,14 +11,35 @@ from pathlib import Path
 from PySide6.QtCore import QStandardPaths, QUrl
 from PySide6.QtWidgets import QComboBox, QHBoxLayout, QLabel, QTextBrowser, QVBoxLayout, QWidget
 
-BOOKS = [
-    ("Справка по заданиям", "project"),
-    ("Лекции, ч. I", "projectl1"),
-    ("Лекции, ч. II", "projectl2"),
-    ("Сборник задач", "projectz"),
-    ("Аннотация", "annotation"),
-    ("Программа курса", "uchprog"),
-]
+TITLES = {
+    "project": "Справка по заданиям",
+    "projectl1": "Лекции, ч. I",
+    "projectl2": "Лекции, ч. II",
+    "projectz": "Сборник задач",
+    "annotation": "Аннотация",
+    "uchprog": "Программа курса",
+    "calpl5": "Календарный план ч. I",
+    "calpl6": "Календарный план ч. II",
+}
+PARTS = {1: "теория", 2: "подготовка", 3: "порядок выполнения"}
+
+
+def _title(name: str) -> str:
+    if name in TITLES:
+        return TITLES[name]
+    m = re.fullmatch(r"project(\d)_(\d)", name)
+    if m:
+        return f"Работа {m.group(1)}: {PARTS.get(int(m.group(2)), name)}"
+    return name
+
+
+def _books(root: Path) -> list[tuple[str, str]]:
+    """Все распакованные книги справки, сначала общие, затем по номерам работ."""
+    have = sorted(d.name for d in root.iterdir() if d.is_dir())
+    order = ["project", "projectl1", "projectl2", "projectz", "annotation", "uchprog"] + \
+            [f"project{i}_{j}" for i in range(1, 9) for j in (1, 2, 3)]
+    names = [n for n in order if n in have] + [n for n in have if n not in order]
+    return [(_title(n), n) for n in names]
 
 
 def help_root() -> Path | None:
@@ -76,7 +97,7 @@ class HelpView(QWidget):
         top = QHBoxLayout()
         top.addWidget(QLabel("Книга:"))
         self.books = QComboBox()
-        for title, name in BOOKS:
+        for title, name in _books(root):
             if _book_dir(root, name):
                 self.books.addItem(title, name)
         top.addWidget(self.books, 1)
@@ -92,6 +113,19 @@ class HelpView(QWidget):
         self.pages.currentIndexChanged.connect(self._load_page)
         if self.books.count():
             self._load_book()
+
+    def open_book(self, name: str, page_hint: str | None = None) -> bool:
+        """Выбрать книгу по имени каталога (project5_3) и, если задан, раздел по подстроке заголовка."""
+        idx = self.books.findData(name)
+        if idx < 0:
+            return False
+        self.books.setCurrentIndex(idx)
+        if page_hint:
+            for i, (title, path) in enumerate(getattr(self, "_items", [])):
+                if page_hint.lower() in title.lower() or page_hint.lower() in path.name.lower():
+                    self.pages.setCurrentIndex(i)
+                    break
+        return True
 
     def _load_book(self):
         name = self.books.currentData()

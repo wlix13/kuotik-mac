@@ -5,11 +5,15 @@ from __future__ import annotations
 import sys
 
 from PySide6.QtWidgets import (QApplication, QHBoxLayout, QLabel, QListWidget, QMainWindow,
-                               QStackedWidget, QVBoxLayout, QWidget)
+                               QPushButton, QStackedWidget, QVBoxLayout, QWidget)
 
 from .helpview import HelpView, help_root
 
 HELP_ROOT = help_root()
+
+# порядок в списке слева -> книга справки с порядком выполнения работы
+HELP_BOOKS = ["project1_3", "project2_3", "project3_3", "project4_3",
+              "project5_3", "project6_3", "project7_3", "project8_3"]
 
 LABS = [
     ("Работа 1 — Периодические сигналы", "lab1"),
@@ -69,13 +73,31 @@ class Main(QMainWindow):
         builders = _lab_pages()
         for title, key in LABS:
             self.stack.addWidget(builders[key]() if key in builders else _placeholder(title))
-        self.stack.addWidget(HelpView(HELP_ROOT))
+        self.help = HelpView(HELP_ROOT)
+        self.stack.addWidget(self.help)
+        right = QWidget()
+        rlay = QVBoxLayout(right)
+        rlay.setContentsMargins(6, 6, 6, 6)
+        bar = QHBoxLayout()
+        self.btn_help = QPushButton("Справка по работе")
+        self.btn_help.clicked.connect(self.open_lab_help)
+        bar.addStretch(1)
+        bar.addWidget(self.btn_help)
+        rlay.addLayout(bar)
+        rlay.addWidget(self.stack, 1)
         row.addWidget(self.nav)
-        row.addWidget(self.stack, 1)
+        row.addWidget(right, 1)
         self.setCentralWidget(body)
         self.nav.currentRowChanged.connect(self.stack.setCurrentIndex)
         self.nav.setCurrentRow(0)
         self.resize(1180, 780)
+
+
+    def open_lab_help(self):
+        row = self.nav.currentRow()
+        if 0 <= row < len(HELP_BOOKS):
+            self.help.open_book(HELP_BOOKS[row])
+            self.nav.setCurrentRow(self.nav.count() - 1)
 
 
 def main() -> int:
