@@ -35,3 +35,7 @@ target-version = "py312"
 [tool.ruff.lint]
 select = ["E", "F", "W", "I"]
 ignore = ["E402"]
+
+[tool.ruff.lint.per-file-ignores]
+# математика перенесена из расчётов лабораторных как есть, правки только по смыслу
+"kuotik_port/mathlib/*" = ["E741", "E501"]

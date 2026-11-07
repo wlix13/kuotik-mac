@@ -15,7 +15,6 @@ import numpy as np  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
 from kuotik_port.labs.lab2 import Lab2Page  # noqa: E402
-
 from kuotik_port.mathlib import pulses as p  # noqa: E402
 
 OUT = Path(os.environ.get("SHOTS", "/tmp/shots-lab2"))

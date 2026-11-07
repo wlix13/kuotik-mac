@@ -4,9 +4,21 @@ from __future__ import annotations
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QPixmap
-from PySide6.QtWidgets import (QCheckBox, QComboBox, QFrame, QGroupBox, QLabel, QLineEdit,
-                               QMainWindow, QPushButton, QRadioButton, QSpinBox, QTabWidget,
-                               QTextEdit, QWidget)
+from PySide6.QtWidgets import (
+    QCheckBox,
+    QComboBox,
+    QFrame,
+    QGroupBox,
+    QLabel,
+    QLineEdit,
+    QMainWindow,
+    QPushButton,
+    QRadioButton,
+    QSpinBox,
+    QTabWidget,
+    QTextEdit,
+    QWidget,
+)
 
 from .forms import MASK_HINTS, Node
 

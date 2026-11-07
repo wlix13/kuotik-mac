@@ -12,11 +12,10 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-import numpy as np                                   # noqa: E402
-from PySide6.QtWidgets import QApplication           # noqa: E402
+import numpy as np  # noqa: E402
+from PySide6.QtWidgets import QApplication  # noqa: E402
 
-from kuotik_port.labs.lab3 import (KINDS, Lab3Page, dtft, fold_freq,  # noqa: E402
-                                   spectrum_one_sided)
+from kuotik_port.labs.lab3 import KINDS, Lab3Page, dtft, fold_freq, spectrum_one_sided  # noqa: E402
 
 OUT = Path(os.environ.get("SHOTS", "/tmp/shots-lab3"))
 OUT.mkdir(parents=True, exist_ok=True)

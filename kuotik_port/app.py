@@ -4,8 +4,17 @@ from __future__ import annotations
 
 import sys
 
-from PySide6.QtWidgets import (QApplication, QHBoxLayout, QLabel, QListWidget, QMainWindow,
-                               QPushButton, QStackedWidget, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (
+    QApplication,
+    QHBoxLayout,
+    QLabel,
+    QListWidget,
+    QMainWindow,
+    QPushButton,
+    QStackedWidget,
+    QVBoxLayout,
+    QWidget,
+)
 
 from .helpview import HelpView, help_root
 
@@ -57,6 +66,11 @@ def _lab_pages() -> dict:
     try:
         from .labs import lab5
         pages["lab5"] = lab5.Lab5Page
+    except ImportError:
+        pass
+    try:
+        from .labs import lab6
+        pages["lab6"] = lab6.Lab6Page
     except ImportError:
         pass
     return pages

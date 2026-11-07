@@ -12,14 +12,28 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-import numpy as np                                   # noqa: E402
-from PySide6.QtWidgets import QApplication           # noqa: E402
+import numpy as np  # noqa: E402
+from PySide6.QtWidgets import QApplication  # noqa: E402
 
-from kuotik_port.labs.lab4 import (KINDS, Lab4Page, acf_biased,  # noqa: E402
-                                   acf_rc, likelihood_ratio, matched_output,
-                                   matched_snr, mean_risk, p_error, pdf, periodogram,
-                                   posterior, power_from_psd, psd_from_acf, psd_rc,
-                                   qfunc, threshold)
+from kuotik_port.labs.lab4 import (  # noqa: E402
+    KINDS,
+    Lab4Page,
+    acf_biased,
+    acf_rc,
+    likelihood_ratio,
+    matched_output,
+    matched_snr,
+    mean_risk,
+    p_error,
+    pdf,
+    periodogram,
+    posterior,
+    power_from_psd,
+    psd_from_acf,
+    psd_rc,
+    qfunc,
+    threshold,
+)
 
 OUT = Path(os.environ.get("SHOTS", "/tmp/shots-lab4"))
 OUT.mkdir(parents=True, exist_ok=True)
