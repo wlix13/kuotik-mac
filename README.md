@@ -5,6 +5,7 @@
 [![python](https://img.shields.io/badge/python-3.12%2B-blue)](https://www.python.org)
 [![PySide6](https://img.shields.io/badge/PySide6-6.7%2B-41cd52)](https://doc.qt.io/qtforpython/)
 [![macOS](https://img.shields.io/badge/macOS-12%2B-lightgrey?logo=apple)](https://www.apple.com/macos/)
+[![release](https://img.shields.io/github/v/release/wlix13/kuotik-mac)](https://github.com/wlix13/kuotik-mac/releases/latest)
 [![license](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 «КУ ОТИК» — компьютерный учебник по теории информации и кодирования кафедры №12 НИЯУ МИФИ: восемь
@@ -23,7 +24,8 @@
 
 ## Чего нет
 
-- Windows-сборка есть, но живёт в CI: руками её никто не запускал.
+- Windows и Linux собраны и запущены в CI (`KUOTIK_SELFTEST=1`), но на живой машине с Windows не
+  проверялись.
 - Растровых картинок на вкладках теории: там текст справки, а не сканы из программы.
 - Сетевых затей оригинала: ввода пароля и отдельного окна «Сборник задач».
 
