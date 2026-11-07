@@ -20,8 +20,7 @@ a = Analysis(
 )
 pyz = PYZ(a.pure)
 exe = EXE(pyz, a.scripts, [], exclude_binaries=True, name="kuotik",
-          console=False, argv_emulation=False,
-          target_arch="universal2" if sys.platform == "darwin" else None)
+          console=False, argv_emulation=False)      # нативная арка: universal2 требует fat-бинарников от всех колёс
 coll = COLLECT(exe, a.binaries, a.datas, name="kuotik")
 if sys.platform == "darwin":                    # BUNDLE — только macOS, на Linux проверяется Analysis
     app = BUNDLE(coll, name="КУ ОТИК.app",
