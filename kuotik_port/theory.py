@@ -8,6 +8,7 @@ from PySide6.QtCore import QUrl
 from PySide6.QtWidgets import QTextBrowser, QVBoxLayout, QWidget
 
 from .helpview import help_root
+from .theme import style_page
 
 
 def _page(book: str) -> Path | None:
@@ -39,9 +40,9 @@ def apply_theory(view: QTextBrowser, book: str, fallback: str) -> None:
     got = theory_page(book)
     if got:
         view.document().setBaseUrl(got[1])
-        view.setHtml(got[0])
+        view.setHtml(style_page(got[0]))
     else:
-        view.setHtml(fallback)
+        view.setHtml(style_page(fallback))
 
 
 def theory_tab(book: str, fallback: str) -> QWidget:
@@ -53,8 +54,8 @@ def theory_tab(book: str, fallback: str) -> QWidget:
     got = theory_page(book)
     if got:
         view.document().setBaseUrl(got[1])
-        view.setHtml(got[0])
+        view.setHtml(style_page(got[0]))
     else:
-        view.setHtml(fallback)
+        view.setHtml(style_page(fallback))
     lay.addWidget(view)
     return w

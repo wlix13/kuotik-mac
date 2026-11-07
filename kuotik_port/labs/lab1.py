@@ -109,34 +109,41 @@ class Lab1Page(QWidget):
 
     def _input_tab(self) -> QWidget:
         w = QWidget()
-        lay = QVBoxLayout(w)
-        top = QHBoxLayout()
+        lay = QHBoxLayout(w)
+        left = QVBoxLayout()
         presets = QComboBox()
         presets.addItems(list(PRESETS))
         presets.currentTextChanged.connect(lambda _: self._load_preset(name=presets.currentText()))
-        top.addWidget(QLabel("Сигнал:"))
-        top.addWidget(presets, 1)
-        lay.addLayout(top)
+        left.addWidget(QLabel("Сигнал:"))
+        left.addWidget(presets)
 
         box = QGroupBox("Спектр: |A_k| и Θ_k (рад)")
         grid = QGridLayout(box)
+        grid.setHorizontalSpacing(8)
+        grid.setVerticalSpacing(4)
+        head = ("k", "|A_k|", "Θ_k")
+        for col, text in enumerate(head):
+            lbl = QLabel(text)
+            lbl.setStyleSheet("color:#24405e; font-weight:600;")
+            grid.addWidget(lbl, 0, col)
         self.a0 = QLineEdit("0.000")
-        grid.addWidget(QLabel("A0/2"), 0, 0)
-        grid.addWidget(self.a0, 0, 1)
         self.amp_edits: list[QLineEdit] = []
         self.phase_edits: list[QLineEdit] = []
-        for k in range(10):
-            a = QLineEdit("0.000")
-            q = QLineEdit("+0.000")
+        grid.addWidget(QLabel("A0/2"), 1, 0)
+        self.a0.setAlignment(Qt.AlignRight)
+        self.a0.setFixedWidth(84)
+        grid.addWidget(self.a0, 1, 1)
+        for k in range(1, 11):
+            grid.addWidget(QLabel(str(k)), 1 + k, 0)
+            a, q = QLineEdit("0.000"), QLineEdit("+0.000")
             for e in (a, q):
                 e.setAlignment(Qt.AlignRight)
-                e.setMaximumWidth(90)
+                e.setFixedWidth(84)
             self.amp_edits.append(a)
             self.phase_edits.append(q)
-            grid.addWidget(QLabel(f"k={k + 1}"), 1 + k, 0)
             grid.addWidget(a, 1 + k, 1)
             grid.addWidget(q, 1 + k, 2)
-        lay.addWidget(box)
+        left.addWidget(box)
 
         row = QHBoxLayout()
         clear = QPushButton("Обнулить")
@@ -146,9 +153,12 @@ class Lab1Page(QWidget):
         row.addWidget(clear)
         row.addWidget(apply_)
         row.addStretch(1)
-        lay.addLayout(row)
-        self.cv_in = Canvas(2.6)
-        lay.addWidget(self.cv_in)
+        left.addLayout(row)
+        left.addStretch(1)
+
+        self.cv_in = Canvas(3.0)
+        lay.addLayout(left, 0)
+        lay.addWidget(self.cv_in, 1)
         return w
 
     def _result_tab(self) -> QWidget:

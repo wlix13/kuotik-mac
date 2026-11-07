@@ -11,6 +11,8 @@ from pathlib import Path
 from PySide6.QtCore import QStandardPaths, QUrl
 from PySide6.QtWidgets import QComboBox, QHBoxLayout, QLabel, QTextBrowser, QVBoxLayout, QWidget
 
+from .theme import style_page
+
 TITLES = {
     "project": "Справка по заданиям",
     "projectl1": "Лекции, ч. I",
@@ -149,7 +151,7 @@ class HelpView(QWidget):
             body = "<p>не читается</p>"
         self._current = path
         self.view.document().setBaseUrl(QUrl.fromLocalFile(str(path.parent) + "/"))
-        self.view.setHtml(body)
+        self.view.setHtml(style_page(body))
 
     def _anchor(self, url: QUrl):
         target = Path(url.toLocalFile()) if url.isLocalFile() else None

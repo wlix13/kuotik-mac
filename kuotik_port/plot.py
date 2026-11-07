@@ -54,16 +54,20 @@ class Canvas(FigureCanvasQTAgg):
                 continue
             self.ax.plot(t, a * np.cos(2 * np.pi * (k + 1) * t + q), linewidth=1.2,
                          color=colors[k % len(colors)], label=f"k={k + 1}")
-        self.ax.legend(fontsize=8, loc="upper right")
+        if self.ax.get_legend_handles_labels()[0]:
+            self.ax.legend(fontsize=8, loc="upper right")
         self.draw_idle()
 
     def bars(self, amps, phases, title: str = "Спектр"):
         """Столбцы |A_k| с подписями фаз — то, что вводится во «Ввод спектра»."""
         self.clear(title, "k", "|A_k|")
-        k = np.arange(len(amps))
+        k = np.arange(1, len(amps) + 1)
         self.ax.bar(k, amps, color="#1a73e8", width=0.6)
-        for i, (a, q) in enumerate(zip(amps, phases)):
+        self.ax.set_xticks(k)
+        top = max(amps) if len(amps) and max(amps) > 0 else 1.0
+        self.ax.set_ylim(0, top * 1.22)
+        for kk, a, q in zip(k, amps, phases):
             if a > 1e-9:
-                self.ax.annotate(f"{q:+.3f}", (i, a), textcoords="offset points", xytext=(0, 4),
+                self.ax.annotate(f"{q:+.3f}", (kk, a), textcoords="offset points", xytext=(0, 4),
                                  ha="center", fontsize=7)
         self.draw_idle()

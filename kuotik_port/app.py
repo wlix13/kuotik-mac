@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import sys
 
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QApplication,
     QHBoxLayout,
@@ -17,6 +18,7 @@ from PySide6.QtWidgets import (
 )
 
 from .helpview import HelpView, help_root
+from .theme import app_style
 
 HELP_ROOT = help_root()
 
@@ -94,7 +96,9 @@ class Main(QMainWindow):
         row = QHBoxLayout(body)
         row.setContentsMargins(0, 0, 0, 0)
         self.nav = QListWidget()
-        self.nav.setMaximumWidth(300)
+        self.nav.setFixedWidth(300)
+        self.nav.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.nav.setTextElideMode(Qt.ElideRight)
         for title, _ in LABS:
             self.nav.addItem(title)
         self.nav.addItem("Справка")
@@ -108,9 +112,11 @@ class Main(QMainWindow):
         rlay = QVBoxLayout(right)
         rlay.setContentsMargins(6, 6, 6, 6)
         bar = QHBoxLayout()
+        self.title = QLabel("")
+        self.title.setStyleSheet("font-size:15px; font-weight:600; color:#123c6e;")
         self.btn_help = QPushButton("Справка по работе")
         self.btn_help.clicked.connect(self.open_lab_help)
-        bar.addStretch(1)
+        bar.addWidget(self.title, 1)
         bar.addWidget(self.btn_help)
         rlay.addLayout(bar)
         rlay.addWidget(self.stack, 1)
@@ -118,9 +124,19 @@ class Main(QMainWindow):
         row.addWidget(right, 1)
         self.setCentralWidget(body)
         self.nav.currentRowChanged.connect(self.stack.setCurrentIndex)
+        self.nav.currentRowChanged.connect(self._on_row)
         self.nav.setCurrentRow(0)
+        self._on_row(0)
         self.resize(1180, 780)
 
+
+    def _on_row(self, row: int):
+        if 0 <= row < len(LABS):
+            self.title.setText(LABS[row][0])
+            self.btn_help.setEnabled(True)
+        else:
+            self.title.setText("Справка")
+            self.btn_help.setEnabled(False)
 
     def open_lab_help(self):
         row = self.nav.currentRow()
@@ -132,6 +148,7 @@ class Main(QMainWindow):
 def main() -> int:
     app = QApplication(sys.argv)
     app.setApplicationName("КУ ОТИК")
+    app_style(app)
     win = Main()
     win.show()
     return app.exec()
