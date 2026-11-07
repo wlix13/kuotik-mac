@@ -3,6 +3,7 @@ from __future__ import annotations
 import math
 import os
 import sys
+import tempfile
 from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
@@ -38,7 +39,7 @@ from kuotik_port.labs.lab6 import (
     surface_rows,
 )
 
-OUT = Path(os.environ.get("SHOTS", "/tmp/shots-lab6"))
+OUT = Path(os.environ.get("SHOTS") or Path(tempfile.gettempdir()) / "shots-lab6")
 OUT.mkdir(parents=True, exist_ok=True)
 
 app = QApplication([])

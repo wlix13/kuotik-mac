@@ -1,6 +1,6 @@
 [project]
 name = "kuotik-mac"
-version = "0.4.0"
+version = "1.0.0"
 description = "КУ ОТИК (Delphi 7, ТИК) для macOS: работы 1-3, справка внутри приложения"
 requires-python = ">=3.12"
 dependencies = [

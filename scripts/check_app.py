@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import sys
+import tempfile
 from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
@@ -12,7 +13,7 @@ from PySide6.QtWidgets import QApplication
 
 from kuotik_port.app import Main
 
-out = Path(os.environ.get("SHOTS", "/tmp/shots"))
+out = Path(os.environ.get("SHOTS") or Path(tempfile.gettempdir()) / "shots")
 out.mkdir(exist_ok=True)
 
 app = QApplication([])

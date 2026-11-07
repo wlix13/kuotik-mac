@@ -1,6 +1,7 @@
 # КУ ОТИК для macOS
 
-[![build-macos](https://github.com/wlix13/kuotik-mac/actions/workflows/build-macos.yml/badge.svg)](https://github.com/wlix13/kuotik-mac/actions/workflows/build-macos.yml)
+[![tests](https://github.com/wlix13/kuotik-mac/actions/workflows/ci-tests.yaml/badge.svg)](https://github.com/wlix13/kuotik-mac/actions/workflows/ci-tests.yaml)
+[![build](https://github.com/wlix13/kuotik-mac/actions/workflows/build.yaml/badge.svg)](https://github.com/wlix13/kuotik-mac/actions/workflows/build.yaml)
 [![python](https://img.shields.io/badge/python-3.12%2B-blue)](https://www.python.org)
 [![PySide6](https://img.shields.io/badge/PySide6-6.7%2B-41cd52)](https://doc.qt.io/qtforpython/)
 [![macOS](https://img.shields.io/badge/macOS-12%2B-lightgrey?logo=apple)](https://www.apple.com/macos/)
@@ -22,9 +23,14 @@
 
 ## Чего нет
 
-- Под Windows не проверялся. Код кроссплатформенный, но обещать не буду.
+- Windows-сборка есть, но живёт в CI: руками её никто не запускал.
 - Растровых картинок на вкладках теории: там текст справки, а не сканы из программы.
 - Сетевых затей оригинала: ввода пароля и отдельного окна «Сборник задач».
+
+## Скачать
+
+Готовые архивы лежат в [релизах](https://github.com/wlix13/kuotik-mac/releases): `kuotik-macos.zip`,
+`kuotik-windows.zip`, `kuotik-linux.tar.gz`. Сборки не подписаны.
 
 ## Быстрый старт
 
@@ -61,13 +67,15 @@ python3 -m venv .venv && .venv/bin/pip install -e . && .venv/bin/kuotik
 uv run python scripts/check_all.py
 ```
 
+Те же проверки идут в CI на Ubuntu, Windows и macOS: `ci-tests.yaml` гоняет их на каждом пуше.
+
 Скрипт гоняет проверки всех работ и печатает итог. Отдельная работа запускается так же:
 `uv run python scripts/check_lab7.py`. Все проверки headless и кладут снимки в `/tmp/shots*`.
 
 ## Сборка .app
 
-Workflow `build-macos` собирает `КУ ОТИК.app` на каждый пуш в `main`, архив лежит в артефактах запуска.
-Локально на маке:
+Workflow `build` собирает архивы под три системы на каждый пуш в `main` и прикладывает их к релизу
+на теге `v*`. Локально на маке:
 
 ```bash
 uv sync && uv run pyinstaller packaging/macos.spec --noconfirm

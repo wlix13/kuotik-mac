@@ -3,6 +3,7 @@ from __future__ import annotations
 import math
 import os
 import sys
+import tempfile
 from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
@@ -15,7 +16,7 @@ from PySide6.QtWidgets import QApplication
 from kuotik_port.labs.lab2 import Lab2Page
 from kuotik_port.mathlib import pulses as p
 
-OUT = Path(os.environ.get("SHOTS", "/tmp/shots-lab2"))
+OUT = Path(os.environ.get("SHOTS") or Path(tempfile.gettempdir()) / "shots-lab2")
 OUT.mkdir(parents=True, exist_ok=True)
 
 def curves(cv):
